@@ -1,8 +1,8 @@
 require "spec_helper"
 
-RSpec.describe Rblisp do
+RSpec.describe RubyLisp do
   it "has a version number" do
-    expect(Rblisp::VERSION).not_to be nil
+    expect(RubyLisp::VERSION).not_to be nil
   end
 
   it "does something useful" do
