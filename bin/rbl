@@ -3,3 +3,22 @@
 require 'bundler/setup'
 require 'rubylisp'
 
+USAGE = <<~HEREDOC
+  Usage:
+    To start a REPL session:
+    #{File.basename $0}
+
+    To run a file:
+    #{File.basename $0} <filename>
+HEREDOC
+
+if __FILE__ == $0
+  case ARGV.length
+  when 0
+    RubyLisp::REPL::start
+  when 1
+    RubyLisp::run_file ARGV[0]
+  else
+    puts USAGE
+  end
+end
