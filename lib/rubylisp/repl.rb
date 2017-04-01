@@ -1,11 +1,13 @@
 require 'readline'
+require 'rubylisp/printer'
+require 'rubylisp/reader'
 
 module RubyLisp
   module REPL
     module_function
 
     def read input
-      input
+      RubyLisp::Reader.read_str input
     end
 
     def eval_ast input
@@ -13,7 +15,7 @@ module RubyLisp
     end
 
     def print input
-      input
+      RubyLisp::Printer.pr_str input
     end
 
     def rep input
@@ -22,7 +24,7 @@ module RubyLisp
 
     def start
       while buf = Readline.readline('user> ', true)
-        p buf
+        puts rep(buf)
       end
     end
   end
