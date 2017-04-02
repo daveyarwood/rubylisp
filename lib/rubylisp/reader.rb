@@ -41,12 +41,18 @@ module RubyLisp
     def read_atom
       token = next_token
       case token
+      when nil
+        nil
       when /^\-?\d+$/
         RubyLisp::Int.new(token.to_i)
       when /^".*"$/
         # it's safe to use eval here because the tokenizer ensures that
         # the token is an escaped string representation
         RubyLisp::String.new(eval(token))
+      # it's a little weird that an unfinished string (e.g. "abc) gets
+        # tokenized as "", but at least the behavior is consistent ¯\_(ツ)_/¯
+      when ""
+        raise RubyLisp::ParseError, "Unexpected EOF while parsing RubyLisp::String."
       when 'nil'
         RubyLisp::Nil.new
       when 'true'
@@ -60,6 +66,10 @@ module RubyLisp
 
     def read_form
       case peek
+      when /^;/
+        # ignore comments
+        next_token
+        read_form
       when '('
         next_token
         read_list
@@ -72,9 +82,7 @@ module RubyLisp
     end
 
     def tokenize str
-      @tokens = str.scan(TOKEN_REGEX)
-                   .flatten
-                   .reject {|token| token.empty?}
+      @tokens = str.scan(TOKEN_REGEX).flatten[0...-1]
       @position = 0
     end
 
