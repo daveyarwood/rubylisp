@@ -21,6 +21,7 @@ end
 really_simple_type "Nil"
 simple_type "Boolean"
 simple_type "Int"
+simple_type "Keyword"
 simple_type "List"
 simple_type "String"
 simple_type "Symbol"

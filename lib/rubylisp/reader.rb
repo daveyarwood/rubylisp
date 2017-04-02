@@ -53,6 +53,8 @@ module RubyLisp
         # tokenized as "", but at least the behavior is consistent ¯\_(ツ)_/¯
       when ""
         raise RubyLisp::ParseError, "Unexpected EOF while parsing RubyLisp::String."
+      when /^:/
+        RubyLisp::Keyword.new(token[1..-1].to_sym)
       when 'nil'
         RubyLisp::Nil.new
       when 'true'

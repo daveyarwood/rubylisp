@@ -8,6 +8,8 @@ module RubyLisp
         x.value ? 'true' : 'false'
       when RubyLisp::Int
         x.value.to_s
+      when RubyLisp::Keyword
+        ":#{x.value.to_s}"
       when RubyLisp::List
         "(#{x.value.map {|item| pr_str(item)}.join(' ')})"
       when RubyLisp::Nil
