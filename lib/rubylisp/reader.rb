@@ -64,6 +64,26 @@ module RubyLisp
       end
     end
 
+    def read_quoted_form
+      form = read_form
+      RubyLisp::List.new([RubyLisp::Symbol.new("quote"), form])
+    end
+
+    def read_quasiquoted_form
+      form = read_form
+      RubyLisp::List.new([RubyLisp::Symbol.new("quasiquote"), form])
+    end
+
+    def read_unquoted_form
+      form = read_form
+      RubyLisp::List.new([RubyLisp::Symbol.new("unquote"), form])
+    end
+
+    def read_splice_unquoted_form
+      form = read_form
+      RubyLisp::List.new([RubyLisp::Symbol.new("splice-unquote"), form])
+    end
+
     def read_form
       case peek
       when /^;/
@@ -76,6 +96,18 @@ module RubyLisp
       when '['
         next_token
         read_vector
+      when "'"
+        next_token
+        read_quoted_form
+      when "`"
+        next_token
+        read_quasiquoted_form
+      when "~"
+        next_token
+        read_unquoted_form
+      when "~@"
+        next_token
+        read_splice_unquoted_form
       else
         read_atom
       end
