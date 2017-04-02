@@ -1,6 +1,7 @@
 require 'readline'
 require 'rubylisp/printer'
 require 'rubylisp/reader'
+require 'rubylisp/reader'
 
 module RubyLisp
   module REPL
@@ -8,6 +9,8 @@ module RubyLisp
 
     def read input
       RubyLisp::Reader.read_str input
+    rescue RubyLisp::ParseError => e
+      e
     end
 
     def eval_ast input

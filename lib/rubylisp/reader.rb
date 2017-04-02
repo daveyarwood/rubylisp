@@ -17,17 +17,25 @@ module RubyLisp
       token
     end
 
-    def read_list(list=[])
+    def read_seq(type, end_token, seq=[])
       case peek
       when nil
-        raise "Unexpected EOF while parsing list."
-      when ')'
+        raise RubyLisp::ParseError, "Unexpected EOF while parsing #{type}."
+      when end_token
         next_token
-        RubyLisp::List.new(list)
+        type.new(seq)
       else
-        list << read_form
-        read_list(list)
+        seq << read_form
+        read_seq(type, end_token, seq)
       end
+    end
+
+    def read_list
+      read_seq RubyLisp::List, ')'
+    end
+
+    def read_vector
+      read_seq RubyLisp::Vector, ']'
     end
 
     def read_atom
@@ -35,6 +43,16 @@ module RubyLisp
       case token
       when /^\-?\d+$/
         RubyLisp::Int.new(token.to_i)
+      when /^".*"$/
+        # it's safe to use eval here because the tokenizer ensures that
+        # the token is an escaped string representation
+        RubyLisp::String.new(eval(token))
+      when 'nil'
+        RubyLisp::Nil.new
+      when 'true'
+        RubyLisp::Boolean.new(true)
+      when 'false'
+        RubyLisp::Boolean.new(false)
       else
         RubyLisp::Symbol.new(token)
       end
@@ -45,6 +63,9 @@ module RubyLisp
       when '('
         next_token
         read_list
+      when '['
+        next_token
+        read_vector
       else
         read_atom
       end
