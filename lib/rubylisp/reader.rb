@@ -22,8 +22,18 @@ module RubyLisp
       when nil
         raise RubyLisp::ParseError, "Unexpected EOF while parsing #{type}."
       when end_token
-        next_token
-        type.new(seq)
+        if type == RubyLisp::HashMap
+          if seq.size.odd?
+            raise RubyLisp::ParseError, "A RubyLisp::HashMap must contain an even number of forms."
+          else
+            next_token
+            hashmap = seq.each_slice(2).to_a.to_h
+            type.new(hashmap)
+          end
+        else
+          next_token
+          type.new(seq)
+        end
       else
         seq << read_form
         read_seq(type, end_token, seq)
@@ -36,6 +46,10 @@ module RubyLisp
 
     def read_vector
       read_seq RubyLisp::Vector, ']'
+    end
+
+    def read_hashmap
+      read_seq RubyLisp::HashMap, '}'
     end
 
     def read_atom
@@ -98,6 +112,9 @@ module RubyLisp
       when '['
         next_token
         read_vector
+      when '{'
+        next_token
+        read_hashmap
       when "'"
         next_token
         read_quoted_form

@@ -6,6 +6,8 @@ module RubyLisp
       case x
       when RubyLisp::Boolean
         x.value ? 'true' : 'false'
+      when RubyLisp::HashMap
+        "{#{x.value.map {|k, v| "#{pr_str(k)} #{pr_str(v)}"}.join ", "}}"
       when RubyLisp::Int
         x.value.to_s
       when RubyLisp::Keyword
