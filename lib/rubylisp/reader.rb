@@ -139,6 +139,12 @@ module RubyLisp
       when '{'
         next_token
         read_hashmap
+      when ')'
+        raise RubyLisp::ParseError, "Unexpected ')'."
+      when ']'
+        raise RubyLisp::ParseError, "Unexpected ']'."
+      when '}'
+        raise RubyLisp::ParseError, "Unexpected '}'."
       when "'"
         next_token
         read_quoted_form
