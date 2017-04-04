@@ -3,7 +3,29 @@ require 'rubylisp/types'
 module RubyLisp
   class Reader
     # from kanaka/mal
-    TOKEN_REGEX = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/
+    TOKEN_REGEX = %r{
+      # ignore whitespace and commas
+      [\s,]*
+
+      # match any of...
+      (
+        # the splice-unquote reader macro
+        ~@|
+
+        # special characters
+        [\[\]{}()'`~^@]|
+
+        # strings
+        "(?:\\.|[^\\"])*"|
+
+        # comments
+        ;.*|
+
+        # any sequence of non-special characters
+        # e.g. symbols, numbers, keywords, booleans, etc.
+        [^\s\[\]{}('"`,;)]*
+      )
+    }x
 
     attr_accessor :tokens, :position
 
@@ -24,7 +46,8 @@ module RubyLisp
       when end_token
         if type == RubyLisp::HashMap
           if seq.size.odd?
-            raise RubyLisp::ParseError, "A RubyLisp::HashMap must contain an even number of forms."
+            raise RubyLisp::ParseError,
+                  "A RubyLisp::HashMap must contain an even number of forms."
           else
             next_token
             hashmap = seq.each_slice(2).to_a.to_h
@@ -66,7 +89,8 @@ module RubyLisp
       # it's a little weird that an unfinished string (e.g. "abc) gets
         # tokenized as "", but at least the behavior is consistent ¯\_(ツ)_/¯
       when ""
-        raise RubyLisp::ParseError, "Unexpected EOF while parsing RubyLisp::String."
+        raise RubyLisp::ParseError,
+              "Unexpected EOF while parsing RubyLisp::String."
       when /^:/
         RubyLisp::Keyword.new(token[1..-1].to_sym)
       when 'nil'
