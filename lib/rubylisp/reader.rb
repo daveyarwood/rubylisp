@@ -164,13 +164,13 @@ module RubyLisp
       when "'"
         next_token
         read_quoted_form
-      when "`"
+      when '`'
         next_token
         read_quasiquoted_form
-      when "~"
+      when '~'
         next_token
         read_unquoted_form
-      when "~@"
+      when '~@'
         next_token
         read_splice_unquoted_form
       else
