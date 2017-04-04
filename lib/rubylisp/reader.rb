@@ -179,7 +179,7 @@ module RubyLisp
     end
 
     def tokenize str
-      @tokens = str.scan(TOKEN_REGEX).flatten[0...-1]
+      @tokens = str.strip.scan(TOKEN_REGEX).flatten[0...-1]
       @position = 0
     end
 
