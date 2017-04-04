@@ -93,40 +93,33 @@ module RubyLisp
       end
     end
 
-    def read_quoted_form
+    def read_special_form(special)
       form = read_form
       unless form
         raise RubyLisp::ParseError,
-              "Unexpected EOF while parsing quoted form."
+              "Unexpected EOF while parsing #{special} form."
       end
-      RubyLisp::List.new([RubyLisp::Symbol.new("quote"), form])
+      RubyLisp::List.new([RubyLisp::Symbol.new(special), form])
+    end
+
+    def read_quoted_form
+      read_special_form 'quote'
     end
 
     def read_quasiquoted_form
-      form = read_form
-      unless form
-        raise RubyLisp::ParseError,
-              "Unexpected EOF while parsing quasiquoted form."
-      end
-      RubyLisp::List.new([RubyLisp::Symbol.new("quasiquote"), form])
+      read_special_form 'quasiquote'
     end
 
     def read_unquoted_form
-      form = read_form
-      unless form
-        raise RubyLisp::ParseError,
-              "Unexpected EOF while parsing unquoted form."
-      end
-      RubyLisp::List.new([RubyLisp::Symbol.new("unquote"), form])
+      read_special_form 'unquote'
     end
 
     def read_splice_unquoted_form
-      form = read_form
-      unless form
-        raise RubyLisp::ParseError,
-              "Unexpected EOF while parsing splice-unquoted form."
-      end
-      RubyLisp::List.new([RubyLisp::Symbol.new("splice-unquote"), form])
+      read_special_form 'splice-unquote'
+    end
+
+    def read_deref_form
+      read_special_form 'deref'
     end
 
     def read_form_with_metadata
@@ -185,6 +178,9 @@ module RubyLisp
       when '~@'
         next_token
         read_splice_unquoted_form
+      when '@'
+        next_token
+        read_deref_form
       when '^'
         next_token
         read_form_with_metadata
