@@ -106,21 +106,37 @@ module RubyLisp
 
     def read_quoted_form
       form = read_form
+      unless form
+        raise RubyLisp::ParseError,
+              "Unexpected EOF while parsing quoted form."
+      end
       RubyLisp::List.new([RubyLisp::Symbol.new("quote"), form])
     end
 
     def read_quasiquoted_form
       form = read_form
+      unless form
+        raise RubyLisp::ParseError,
+              "Unexpected EOF while parsing quasiquoted form."
+      end
       RubyLisp::List.new([RubyLisp::Symbol.new("quasiquote"), form])
     end
 
     def read_unquoted_form
       form = read_form
+      unless form
+        raise RubyLisp::ParseError,
+              "Unexpected EOF while parsing unquoted form."
+      end
       RubyLisp::List.new([RubyLisp::Symbol.new("unquote"), form])
     end
 
     def read_splice_unquoted_form
       form = read_form
+      unless form
+        raise RubyLisp::ParseError,
+              "Unexpected EOF while parsing splice-unquoted form."
+      end
       RubyLisp::List.new([RubyLisp::Symbol.new("splice-unquote"), form])
     end
 
