@@ -20,7 +20,6 @@ end
 
 really_simple_type "Nil"
 simple_type "Boolean"
-simple_type "HashMap"
 simple_type "Int"
 simple_type "Keyword"
 simple_type "List"
@@ -29,3 +28,17 @@ simple_type "Symbol"
 simple_type "Vector"
 error_type "ParseError"
 
+module RubyLisp
+  class HashMap
+    attr_accessor :value
+
+    def initialize(seq)
+      if seq.size.odd?
+        raise RubyLisp::ParseError,
+          "A RubyLisp::HashMap must contain an even number of forms."
+      else
+        @value = seq.each_slice(2).to_a.to_h
+      end
+    end
+  end
+end

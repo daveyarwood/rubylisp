@@ -44,19 +44,8 @@ module RubyLisp
       when nil
         raise RubyLisp::ParseError, "Unexpected EOF while parsing #{type}."
       when end_token
-        if type == RubyLisp::HashMap
-          if seq.size.odd?
-            raise RubyLisp::ParseError,
-                  "A RubyLisp::HashMap must contain an even number of forms."
-          else
-            next_token
-            hashmap = seq.each_slice(2).to_a.to_h
-            type.new(hashmap)
-          end
-        else
-          next_token
-          type.new(seq)
-        end
+        next_token
+        type.new(seq)
       else
         seq << read_form
         read_seq(type, end_token, seq)
@@ -140,6 +129,29 @@ module RubyLisp
       RubyLisp::List.new([RubyLisp::Symbol.new("splice-unquote"), form])
     end
 
+    def read_form_with_metadata
+      token = peek
+      case token
+      when nil
+        raise RubyLisp::ParseError, "Unexpected EOF while parsing metadata."
+      when '{'
+        next_token
+        metadata = read_hashmap
+      when /^:/
+        kw = read_form
+        metadata = RubyLisp::HashMap.new([kw, RubyLisp::Boolean.new(true)])
+      else
+        raise RubyLisp::ParseError, "Invalid metadata: '#{token}'"
+      end
+
+      form = read_form
+      unless form
+        raise RubyLisp::ParseError, "Unexpected EOF after metadata."
+      end
+
+      RubyLisp::List.new([RubyLisp::Symbol.new("with-meta"), form, metadata])
+    end
+
     def read_form
       case peek
       when /^;/
@@ -173,6 +185,9 @@ module RubyLisp
       when '~@'
         next_token
         read_splice_unquoted_form
+      when '^'
+        next_token
+        read_form_with_metadata
       else
         read_atom
       end
