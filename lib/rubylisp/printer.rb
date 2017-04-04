@@ -22,6 +22,8 @@ module RubyLisp
         x.value
       when RubyLisp::Vector
         "[#{x.value.map {|item| pr_str(item)}.join(' ')}]"
+      when nil
+        ''
       else
         x.inspect
       end
