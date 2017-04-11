@@ -196,7 +196,7 @@ module RubyLisp
           fn, *args = input.value
           quoted_form = args[0]
 
-          if [RubyLisp::List, RubyLisp::Vector].member? quoted_form.class
+          if [RubyLisp::HashMap, RubyLisp::List, RubyLisp::Vector].member? quoted_form.class
             quoted_form.quote.value
           else
             quoted_form.quote

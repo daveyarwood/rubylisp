@@ -5,6 +5,10 @@ require 'hamster/vector'
 
 # Monkey-patch Ruby symbols to act more like Clojure keywords
 class Symbol
+	def name
+		to_s[1..-1]
+	end
+
   def to_s
     inspect
   end
@@ -13,7 +17,7 @@ class Symbol
     if [Hash, Hamster::Hash].member? target.class
       target[self]
     else
-      target.instance_variable_get "@#{self.to_s}".to_sym
+      target.instance_variable_get "@#{name}".to_sym
     end
   end
 end
@@ -30,6 +34,12 @@ module Hamster
   module EmptyList
     def EmptyList.to_s
       "()"
+    end
+  end
+
+  class Hash
+    def to_s
+      "{#{to_hash.map {|k, v| "#{k} #{v}"}.join ", "}}"
     end
   end
 
@@ -80,6 +90,18 @@ module RubyLisp
       else
         @value = Hamster::Hash[seq.each_slice(2).to_a]
       end
+    end
+
+    def quote
+      @value.each {|k, v| k.quote; v.quote}
+      @quoted = true
+      self
+    end
+
+    def unquote
+      @value.each {|k, v| k.unquote; v.unquote}
+      @quoted = false
+      self
     end
   end
 

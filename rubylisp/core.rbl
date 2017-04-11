@@ -118,11 +118,18 @@
   (fn nil? [x]
     (= nil x)))
 
+(def string?
+  (fn string? [x]
+    (.is_a? x Kernel::String)))
+
+;; TODO: implement & use cond
 (def count
   (fn count [x]
     (if (nil? x)
       0
-      (.count x))))
+      (if (string? x)
+        (.count (seq x))
+        (.count x)))))
 
 (def empty?
   (fn empty? [coll]
@@ -140,9 +147,25 @@
   (fn list? [x]
     (.is_a? x Hamster::List)))
 
-(def string?
-  (fn string? [x]
-    (.is_a? x Kernel::String)))
+(def vector
+  (fn vector [& args]
+    (Hamster::Vector::new args)))
+
+(def vector?
+  (fn vector? [x]
+    (.is_a? x Hamster::Vector)))
+
+(def vec
+  (fn vec [coll]
+    (Hamster::Vector::new coll)))
+
+(def hash-map
+	(fn hash-map [& args]
+    (Hamster::Hash::new (.to_h (.each_slice args 2)))))
+
+(def map?
+  (fn map? [x]
+    (.is_a? x Hamster::Hash)))
 
 (def seq
   (fn seq [x]
@@ -204,11 +227,17 @@
       (apply Hamster::repeat args)
       (apply Hamster::replicate args))))
 
-;; STRINGS
+;; STRINGS & KEYWORDS
 
 (def str
   (fn str [& args]
     (.join (map .to_s args))))
+
+(def name
+  (fn name [x]
+    (if (string? x)
+      x
+      (.name x))))
 
 ;; I/O
 
@@ -237,7 +266,7 @@
 
 (def =@
   (fn =@ [obj kw value]
-    (.instance_variable_set obj (.to_sym (+ "@" (.to_s kw))) value)))
+    (.instance_variable_set obj (.to_sym (+ "@" (name kw))) value)))
 
 (def class
   (fn class [x]

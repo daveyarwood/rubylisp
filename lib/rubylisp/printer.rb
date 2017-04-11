@@ -18,11 +18,10 @@ module RubyLisp
           pr_str x.to_hash
         when Hamster::List
           "(#{x.map {|item| pr_str(item)}.join(' ')})"
-        when RubyLisp::Keyword
-          ":#{x.value}"
         when RubyLisp::List
           "(#{x.value.map {|item| pr_str(item)}.join(' ')})"
-        when RubyLisp::Symbol, RubyLisp::Int, RubyLisp::Float
+        when RubyLisp::Symbol, RubyLisp::String, RubyLisp::Int, RubyLisp::Float,
+             RubyLisp::Boolean, RubyLisp::Keyword
           x.value
         else
           x.inspect

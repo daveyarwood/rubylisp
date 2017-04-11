@@ -36,7 +36,177 @@ I think I was right. Check it out, everyone -- you can write your Ruby scripts i
 
 ## Examples
 
-_TODO_
+### It's basically Clojure
+
+Many of the affordances of the Clojure standard library are implemented as part
+of the `rbl.core` namespace, which is included by default:
+
+```clojure
+user> (prn 'oh :hello "hi" 1 2.3 '(abc def) ['g ()] '{:h ijk})
+oh :hello "hi" 1 2.3 (abc def) [g ()] {:h ijk}
+nil
+
+user> (take 20 (map inc (reverse (range 100))))
+(101 100 99 98 97 96 95 94 93 92 91 90 89 88 87 86 85 84 83 82)
+```
+
+### Module/Class members
+
+Members of Ruby modules and classes may be accessed in a familiar way, by appending `::` to the module or class:
+
+```clojure
+user> Kernel::ARGV
+[]
+
+user> Encoding::Converter::CR_NEWLINE_DECORATOR
+8192
+
+user> File::SEPARATOR
+"/"
+```
+
+### Instance methods
+
+Instance methods are called like Lisp functions. The reader will recognize any symbol that starts with `.` as an instance method, and send it as a message to the second element in the S-expression.
+
+For example, `(.+ 1 2)` in RubyLisp is equivalent to `1.send(:+, 2)` in Ruby.
+
+```clojure
+user> (def f (File::open "/tmp/ugh.txt"))
+#<File:/tmp/ugh.txt>
+
+user> (.methods f)
+[:size :path :truncate :lstat :atime :mtime :ctime :birthtime :chmod :chown ...
+:! :== :!= :__send__ :equal? :instance_eval :instance_exec :__id__]
+
+user> (.readbyte f)
+66
+
+user> (.size f)
+365
+```
+
+### Immutable lists
+
+The `list` function and `quote` form (e.g. `'(1 2 3)`) create immutable lists from the [Hamster][hamster] library:
+
+```clojure
+user> (class (list 1 2 3))
+Hamster::Cons
+
+user> (class '(abc def))
+Hamster::Cons
+
+user> (cons 'foo (quote (bar baz)))
+(foo bar baz)
+```
+
+### Immutable vectors
+
+Similarly, the `vector` and `vec` functions, as well as the square bracket literal form, create immutable vectors:
+
+```clojure
+user> (vector 1 2 3)
+[1 2 3]
+
+user> (vec (list 1 2 3))
+[1 2 3]
+
+user> (= [1 2 3] (vector 1 2 3))
+true
+
+user> (class [1 2 3])
+Hamster::Vector
+```
+
+### Immutable maps
+
+The `hash-map` function or the curly brace literal form can be used to create an immutable map:
+
+```clojure
+user> (map? (hash-map 'a 1 'b 2 'c 3))
+true
+
+user> {:a 1 "b" 2 'C 3}
+{:a 1, C 3, "b" 2}
+```
+
+### Keywords (a.k.a. Symbols)
+
+A keyword (in Clojure and therefore RubyLisp parlance) begins with a `:`. In Ruby, this data type is called, somewhat confusingly, a Symbol.
+
+```clojure
+user> (class :floop)
+Symbol
+
+user> (= :snoob (.to_sym "snoob"))
+true
+```
+
+RubyLisp monkey-patches the Symbol class to make it behave like a Clojure keyword; you can call it like a function in order to retrieve a value from a hash map:
+
+```clojure
+user> (def barbara {:age 7 :species "greyhound"})
+{:age 7, :species "greyhound"}
+
+user> (:species barbara)
+"greyhound"
+```
+
+### Instance variables
+
+But that's not all -- you can also use keywords to get the value of an instance variable:
+
+```clojure
+; FIXME: This is a contrived example because it is not yet possible to easily
+define a class in RubyLisp.
+
+; rbl.core/=@ is provided as a convenient way to set instance variables on any
+object... even a string!
+user> (def s "my string")
+"my string"
+
+user> (=@ s :object_level 9001)
+9001
+
+; instance variables can then be retrieved by using a keyword as a function
+user> (:object_level s)
+9001
+```
+
+The above example is a little nonsensical (although a testament to the whimsy
+of Ruby), but the pair of `=@` and keyword-used-as-a-function will be more
+useful once there is a convenient way to define classes in RubyLisp.
+
+### Mutable arrays and hashes
+
+You can still use Ruby's mutable data structures via inter-op, if you insist:
+
+```clojure
+user> (def a (.dup (.to_a [1 2 3 4 5])))
+[1 2 3 4 5]
+
+user> (class a)
+Array
+
+user> (.<< a 6)
+[1 2 3 4 5 6]
+
+user> a
+[1 2 3 4 5 6]
+
+user> (def h (.to_h {}))
+{}
+
+user> (class h)
+Hash
+
+user> (.merge! h {:a 3})
+{:a 3}
+
+user> h
+{:a 3}
+```
 
 ## Installation
 
