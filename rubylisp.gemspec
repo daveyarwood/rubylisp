@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["dave.yarwood@gmail.com"]
 
   spec.summary       = "A Lisp dialect of Ruby"
-  spec.description   = "A Lisp dialect of Ruby" # TODO: longer description
+  spec.description   = "A Lisp dialect of Ruby"
   spec.homepage      = "https://github.com/daveyarwood/rubylisp"
   spec.license       = "MIT"
 
