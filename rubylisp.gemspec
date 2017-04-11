@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
   end
   spec.bindir        = "bin"
   spec.executables   = ['rbl']
-  spec.require_paths = ["lib"]
+  spec.require_paths = ['lib', 'rubylisp']
 
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"

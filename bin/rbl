@@ -13,15 +13,13 @@ USAGE = <<~HEREDOC
     #{File.basename $0} <filename>
 HEREDOC
 
-if __FILE__ == $0
-  case ARGV.length
-  when 0
-    RubyLisp::REPL::start
-  when 1
-    file_contents = File.read ARGV[0]
-    input = file_contents.gsub(/\A#!.*\n/, '')
-    puts RubyLisp::Parser.parse(input)
-  else
-    puts USAGE
-  end
+case ARGV.length
+when 0
+  RubyLisp::REPL::start
+when 1
+  file_contents = File.read ARGV[0]
+  input = file_contents.gsub(/\A#!.*\n/, '')
+  puts RubyLisp::Parser.parse(input)
+else
+  puts USAGE
 end
