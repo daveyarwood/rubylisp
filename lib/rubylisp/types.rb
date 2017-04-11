@@ -1,13 +1,41 @@
 require 'hamster/core_ext'
 require 'hamster/hash'
+require 'hamster/list'
+require 'hamster/vector'
 
 # Monkey-patch Ruby symbols to act more like Clojure keywords
 class Symbol
+  def to_s
+    inspect
+  end
+
   def call(target)
     if [Hash, Hamster::Hash].member? target.class
       target[self]
     else
       target.instance_variable_get "@#{self.to_s}".to_sym
+    end
+  end
+end
+
+# Monkey-patch Hamster types to have nicer (and more Clojure-like) string
+# representations
+module Hamster
+  class Cons
+    def to_s
+      "(#{join " "})"
+    end
+  end
+
+  module EmptyList
+    def EmptyList.to_s
+      "()"
+    end
+  end
+
+  class Vector
+    def to_s
+      "[#{join " "}]"
     end
   end
 end
@@ -28,6 +56,10 @@ module RubyLisp
     def unquote
       @quoted = false
       self
+    end
+
+    def to_s
+      @value.to_s
     end
   end
 
@@ -120,7 +152,18 @@ module RubyLisp
     def initialize(values)
       @value = Hamster::Vector.new(values)
     end
-  end
 
+    def quote
+      @value.each(&:quote)
+      @quoted = true
+      self
+    end
+
+    def unquote
+      @value.each(&:unquote)
+      @quoted = false
+      self
+    end
+  end
 end
 

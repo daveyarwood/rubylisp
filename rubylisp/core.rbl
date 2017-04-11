@@ -1,5 +1,4 @@
 ; TODO:
-; math operators that take a variable number of args
 ; and, or
 ; implement macros
 ; defn
@@ -7,8 +6,13 @@
 ; comment
 ; ->, ->>
 ; private vars/fns
+; if-not, when, when-not, if-let, when-let
+; cond
+; case
 
 (ns rubylisp.core)
+
+;; MATH & LOGIC
 
 (def +
   (fn + [x y & more]
@@ -67,6 +71,21 @@
         (apply = xy more)
         xy))))
 
+(def not=
+  (fn not= [x y & more]
+    (let [xy (.!= x y)]
+      (if more
+        (apply not= xy more)
+        xy))))
+
+(def boolean
+  (fn boolean [x]
+    (if x true false)))
+
+(def not
+  (fn not [x]
+    (if x false true)))
+
 (def >
   (fn > [x y & more]
     (let [xy (.> x y)]
@@ -81,20 +100,6 @@
         (apply >= xy more)
         xy))))
 
-(def nil?
-  (fn nil? [x]
-    (= nil x)))
-
-(def count
-  (fn count [x]
-    (if (nil? x)
-      0
-      (.count x))))
-
-(def empty?
-  (fn empty? [coll]
-    (.empty? coll)))
-
 (def pos?
   (fn pos? [x]
     (> (count x) 0)))
@@ -107,13 +112,49 @@
   (fn zero? [x]
     (= 0 x)))
 
-(def =@
-  (fn =@ [obj kw value]
-    (.instance_variable_set obj (.to_sym (+ "@" (.to_s kw))) value)))
+;; LISTS & COLLECTIONS
+
+(def nil?
+  (fn nil? [x]
+    (= nil x)))
+
+(def count
+  (fn count [x]
+    (if (nil? x)
+      0
+      (.count x))))
+
+(def empty?
+  (fn empty? [coll]
+    (if (nil? coll)
+      true
+      (.empty? coll))))
 
 (def list
   (fn list [& args]
-    (.to_list args)))
+    (.to_list (if (nil? args)
+                []
+                args))))
+
+(def list?
+  (fn list? [x]
+    (.is_a? x Hamster::List)))
+
+(def string?
+  (fn string? [x]
+    (.is_a? x Kernel::String)))
+
+(def seq
+  (fn seq [x]
+    (if (not (empty? x))
+      (if (string? x)
+        (.to_list (.chars x))
+        (.to_list x)))))
+
+(def cons
+  (fn cons [x y]
+    (let [lst (if (nil? y) (Hamster::List::empty) (.to_list y))]
+      (.cons lst x))))
 
 (def first
   (fn first [coll]
@@ -123,10 +164,82 @@
   (fn last [coll]
     (.last coll)))
 
+(def rest
+  (fn rest [coll]
+    (let [lst (if (nil? coll) (Hamster::List::empty) (.to_list coll))]
+      (.tail lst))))
+
+(def take
+  (fn take [n coll]
+    (.to_list (.take coll n))))
+
+;; TODO: support mapping over multiple collections
+(def map
+  (fn map [f coll]
+    (if (empty? coll)
+      ()
+      (cons (f (first coll)) (map f (rest coll))))))
+
 (def reverse
   (fn reverse [coll]
     (if (empty? coll)
       coll
       (+ [(last coll)]
          (reverse (.slice coll 0 (dec (count coll))))))))
+
+;; TODO: implement as multiple arity fn
+;; TODO: zero-arity that produces a lazy list, i.e. Hamster::iterate(0,
+;; &:next).take(5)
+;; (requires some kind of block syntax)
+(def range
+  (fn range [& args]
+    (if (= 1 (count args))
+      (apply range 0 args)
+      (apply Hamster::interval args))))
+
+;; TODO: implement as multiple arity fn
+(def repeat
+  (fn repeat [& args]
+    (if (= 1 (count args))
+      (apply Hamster::repeat args)
+      (apply Hamster::replicate args))))
+
+;; STRINGS
+
+(def str
+  (fn str [& args]
+    (.join (map .to_s args))))
+
+;; I/O
+
+(def pr-str
+  (fn pr-str [& args]
+    (if (zero? (count args))
+      ""
+      (apply RubyLisp::Printer::pr_str args))))
+
+(def prn
+  (fn prn [& args]
+    (Kernel::puts (apply pr-str args))
+    nil))
+
+(def print
+  (fn print [& args]
+    (Kernel::print (.join (map str args) " "))
+    nil))
+
+(def println
+  (fn print [& args]
+    (Kernel::puts (.join (map str args) " "))
+    nil))
+
+;; RUBY INTEROP
+
+(def =@
+  (fn =@ [obj kw value]
+    (.instance_variable_set obj (.to_sym (+ "@" (.to_s kw))) value)))
+
+(def class
+  (fn class [x]
+    (.class x)))
 

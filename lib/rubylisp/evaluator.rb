@@ -1,4 +1,5 @@
 require 'rubylisp/environment'
+require 'rubylisp/printer'
 require 'rubylisp/types'
 
 module RubyLisp
@@ -194,7 +195,12 @@ module RubyLisp
           assert_number_of_args input, 1
           fn, *args = input.value
           quoted_form = args[0]
-          quoted_form.quote
+
+          if [RubyLisp::List, RubyLisp::Vector].member? quoted_form.class
+            quoted_form.quote.value
+          else
+            quoted_form.quote
+          end
         elsif input.value[0].value == 'resolve'
           assert_number_of_args input, 1
           symbol = eval_ast(input.value[1], env)
