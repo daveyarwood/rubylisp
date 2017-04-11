@@ -1,33 +1,25 @@
 require 'readline'
-require 'rubylisp/printer'
-require 'rubylisp/reader'
-require 'rubylisp/reader'
+require 'rubylisp/environment'
+require 'rubylisp/parser'
 
 module RubyLisp
   module REPL
     module_function
 
-    def read input
-      RubyLisp::Reader.read_str input
-    rescue RubyLisp::ParseError => e
-      e
-    end
-
-    def eval_ast input
-      input
-    end
-
-    def print input
-      RubyLisp::Printer.pr_str input
-    end
-
-    def rep input
-      print(eval_ast(read(input)))
-    end
-
     def start
-      while buf = Readline.readline('user> ', true)
-        puts rep(buf)
+      env = RubyLisp::Environment.new(namespace: 'user').stdlib.repl
+
+      while buf = Readline.readline("#{env.namespace}> ", true)
+        begin
+          input = buf.nil? ? '' : buf.strip
+          puts input.empty? ? '' : RubyLisp::Parser.parse(input, env)
+        rescue => e
+          # If an error happens, print it like Ruby would and continue accepting
+          # REPL input.
+          puts e.backtrace
+                .join("\n\t")
+                .sub("\n\t", ": #{e}#{e.class ? " (#{e.class})" : ''}\n\t")
+        end
       end
     end
   end

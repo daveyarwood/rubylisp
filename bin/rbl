@@ -1,7 +1,8 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-require 'rubylisp'
+require 'rubylisp/parser'
+require 'rubylisp/repl'
 
 USAGE = <<~HEREDOC
   Usage:
@@ -17,7 +18,7 @@ if __FILE__ == $0
   when 0
     RubyLisp::REPL::start
   when 1
-    RubyLisp::run_file ARGV[0]
+    puts RubyLisp::Parser.parse(File.read ARGV[0])
   else
     puts USAGE
   end

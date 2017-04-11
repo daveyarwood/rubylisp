@@ -71,12 +71,14 @@ module RubyLisp
         nil
       when /^\-?\d+$/
         RubyLisp::Int.new(token.to_i)
+      when /^\-?\d+\.\d+$/
+        RubyLisp::Float.new(token.to_f)
       when /^".*"$/
         # it's safe to use eval here because the tokenizer ensures that
         # the token is an escaped string representation
         RubyLisp::String.new(eval(token))
       # it's a little weird that an unfinished string (e.g. "abc) gets
-        # tokenized as "", but at least the behavior is consistent ¯\_(ツ)_/¯
+      # tokenized as "", but at least the behavior is consistent ¯\_(ツ)_/¯
       when ""
         raise RubyLisp::ParseError,
               "Unexpected EOF while parsing RubyLisp::String."
@@ -197,7 +199,11 @@ module RubyLisp
     def Reader.read_str str
       reader = Reader.new
       reader.tokenize(str)
-      reader.read_form
+      forms = []
+      while reader.position < reader.tokens.count
+        forms << reader.read_form
+      end
+      forms
     end
   end
 end

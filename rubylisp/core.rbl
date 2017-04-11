@@ -1,0 +1,132 @@
+; TODO:
+; math operators that take a variable number of args
+; and, or
+; implement macros
+; defn
+; str
+; comment
+; ->, ->>
+; private vars/fns
+
+(ns rubylisp.core)
+
+(def +
+  (fn + [x y & more]
+    (let [xy (.+ x y)]
+      (if more
+        (apply + xy more)
+        xy))))
+
+(def -
+  (fn - [x y & more]
+    (let [xy (.- x y)]
+      (if more
+        (apply - xy more)
+        xy))))
+
+(def inc
+  (fn inc [x]
+    (+ x 1)))
+
+(def dec
+  (fn dec [x]
+    (- x 1)))
+
+(def *
+  (fn * [x y & more]
+    (let [xy (.* x y)]
+      (if more
+        (apply * xy more)
+        xy))))
+
+(def /
+  (fn / [x y & more]
+    (let [xy (./ x y)]
+      (if more
+        (apply / xy more)
+        xy))))
+
+(def <
+  (fn < [x y & more]
+    (let [xy (.< x y)]
+      (if more
+        (apply < xy more)
+        xy))))
+
+(def <=
+  (fn <= [x y & more]
+    (let [xy (.<= x y)]
+      (if more
+        (apply <= xy more)
+        xy))))
+
+(def =
+  (fn = [x y & more]
+    (let [xy (.== x y)]
+      (if more
+        (apply = xy more)
+        xy))))
+
+(def >
+  (fn > [x y & more]
+    (let [xy (.> x y)]
+      (if more
+        (apply > xy more)
+        xy))))
+
+(def >=
+  (fn >= [x y & more]
+    (let [xy (.>= x y)]
+      (if more
+        (apply >= xy more)
+        xy))))
+
+(def nil?
+  (fn nil? [x]
+    (= nil x)))
+
+(def count
+  (fn count [x]
+    (if (nil? x)
+      0
+      (.count x))))
+
+(def empty?
+  (fn empty? [coll]
+    (.empty? coll)))
+
+(def pos?
+  (fn pos? [x]
+    (> (count x) 0)))
+
+(def neg?
+  (fn neg? [x]
+    (< (count x) 0)))
+
+(def zero?
+  (fn zero? [x]
+    (= 0 x)))
+
+(def =@
+  (fn =@ [obj kw value]
+    (.instance_variable_set obj (.to_sym (+ "@" (.to_s kw))) value)))
+
+(def list
+  (fn list [& args]
+    (.to_list args)))
+
+(def first
+  (fn first [coll]
+    (.first coll)))
+
+(def last
+  (fn last [coll]
+    (.last coll)))
+
+(def reverse
+  (fn reverse [coll]
+    (if (empty? coll)
+      coll
+      (+ [(last coll)]
+         (reverse (.slice coll 0 (dec (count coll))))))))
+
