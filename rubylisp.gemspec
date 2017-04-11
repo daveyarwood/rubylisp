@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'rubylisp/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "rubylisp"
+  spec.name          = "rbl"
   spec.version       = RubyLisp::VERSION
   spec.authors       = ["Dave Yarwood"]
   spec.email         = ["dave.yarwood@gmail.com"]

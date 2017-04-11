@@ -1,4 +1,4 @@
-# RubyLisp
+# RubyLisp (rbl)
 
 A Lisp dialect of Ruby.
 
@@ -43,7 +43,7 @@ _TODO_
 Run this:
 
 ```bash
-$ gem install rubylisp
+$ gem install rbl
 ```
 
 ## Usage
