@@ -158,18 +158,18 @@ user> (:species barbara)
 But that's not all -- you can also use keywords to get the value of an instance variable:
 
 ```clojure
-; FIXME: This is a contrived example because it is not yet possible to easily
-define a class in RubyLisp.
+;; FIXME: This is a contrived example because it is not yet possible to easily
+;; define a class in RubyLisp.
 
-; rbl.core/=@ is provided as a convenient way to set instance variables on any
-object... even a string!
+;; rbl.core/=@ is provided as a convenient way to set instance variables on any
+;; object... even a string!
 user> (def s "my string")
 "my string"
 
 user> (=@ s :object_level 9001)
 9001
 
-; instance variables can then be retrieved by using a keyword as a function
+;; instance variables can then be retrieved by using a keyword as a function
 user> (:object_level s)
 9001
 ```
