@@ -18,6 +18,8 @@ module RubyLisp
           pr_str x.to_hash
         when Hamster::List
           "(#{x.map {|item| pr_str(item)}.join(' ')})"
+        when RubyLisp::Function
+          "#<RubyLisp::Function: #{x.name}>"
         when RubyLisp::List
           "(#{x.value.map {|item| pr_str(item)}.join(' ')})"
         when RubyLisp::Symbol, RubyLisp::String, RubyLisp::Int, RubyLisp::Float,

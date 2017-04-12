@@ -82,6 +82,17 @@ module RubyLisp
   class ParseError < StandardError; end
   class RuntimeError < StandardError; end
 
+  class Function
+    attr_accessor :name, :env, :bindings, :body, :value
+
+    def initialize(name, env, bindings, body)
+      @name = name
+      @env = env
+      @bindings = bindings
+      @body = body
+    end
+  end
+
   class HashMap < Value
     def initialize(seq)
       if seq.size.odd?
