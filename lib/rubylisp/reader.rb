@@ -39,29 +39,29 @@ module RubyLisp
       token
     end
 
-    def read_seq(type, end_token, seq=[])
+    def read_seq(type_name, constructor, end_token, seq=[])
       case peek
       when nil
-        raise RubyLisp::ParseError, "Unexpected EOF while parsing #{type}."
+        raise ParseError, "Unexpected EOF while parsing #{type_name}."
       when end_token
         next_token
-        type.new(seq)
+        constructor.call(seq)
       else
         seq << read_form
-        read_seq(type, end_token, seq)
+        read_seq(type_name, constructor, end_token, seq)
       end
     end
 
     def read_list
-      read_seq RubyLisp::List, ')'
+      read_seq 'list', RubyLisp.method(:list), ')'
     end
 
     def read_vector
-      read_seq RubyLisp::Vector, ']'
+      read_seq 'vector', RubyLisp.method(:vec), ']'
     end
 
     def read_hashmap
-      read_seq RubyLisp::HashMap, '}'
+      read_seq 'hash-map', RubyLisp.method(:hash_map), '}'
     end
 
     def read_atom
@@ -70,38 +70,36 @@ module RubyLisp
       when nil
         nil
       when /^\-?\d+$/
-        RubyLisp::Int.new(token.to_i)
+        Value.new(token.to_i)
       when /^\-?\d+\.\d+$/
-        RubyLisp::Float.new(token.to_f)
+        Value.new(token.to_f)
       when /^".*"$/
         # it's safe to use eval here because the tokenizer ensures that
         # the token is an escaped string representation
-        RubyLisp::String.new(eval(token))
+        Value.new(eval(token))
       # it's a little weird that an unfinished string (e.g. "abc) gets
       # tokenized as "", but at least the behavior is consistent ¯\_(ツ)_/¯
       when ""
-        raise RubyLisp::ParseError,
-              "Unexpected EOF while parsing RubyLisp::String."
+        raise ParseError, "Unexpected EOF while parsing String."
       when /^:/
-        RubyLisp::Keyword.new(token[1..-1].to_sym)
+        Value.new(token[1..-1].to_sym)
       when 'nil'
-        RubyLisp::Nil.new
+        Value.new(nil)
       when 'true'
-        RubyLisp::Boolean.new(true)
+        Value.new(true)
       when 'false'
-        RubyLisp::Boolean.new(false)
+        Value.new(false)
       else
-        RubyLisp::Symbol.new(token)
+        Symbol.new(token)
       end
     end
 
     def read_special_form(special)
       form = read_form
       unless form
-        raise RubyLisp::ParseError,
-              "Unexpected EOF while parsing #{special} form."
+        raise ParseError, "Unexpected EOF while parsing #{special} form."
       end
-      RubyLisp::List.new([RubyLisp::Symbol.new(special), form])
+      list [Symbol.new(special), form]
     end
 
     def read_quoted_form
@@ -128,23 +126,23 @@ module RubyLisp
       token = peek
       case token
       when nil
-        raise RubyLisp::ParseError, "Unexpected EOF while parsing metadata."
+        raise ParseError, "Unexpected EOF while parsing metadata."
       when '{'
         next_token
         metadata = read_hashmap
       when /^:/
         kw = read_form
-        metadata = RubyLisp::HashMap.new([kw, RubyLisp::Boolean.new(true)])
+        metadata = hash_map [kw, Value.new(true)]
       else
-        raise RubyLisp::ParseError, "Invalid metadata: '#{token}'"
+        raise ParseError, "Invalid metadata: '#{token}'"
       end
 
       form = read_form
       unless form
-        raise RubyLisp::ParseError, "Unexpected EOF after metadata."
+        raise ParseError, "Unexpected EOF after metadata."
       end
 
-      RubyLisp::List.new([RubyLisp::Symbol.new("with-meta"), form, metadata])
+      list [Symbol.new("with-meta"), form, metadata]
     end
 
     def read_form
@@ -163,11 +161,11 @@ module RubyLisp
         next_token
         read_hashmap
       when ')'
-        raise RubyLisp::ParseError, "Unexpected ')'."
+        raise ParseError, "Unexpected ')'."
       when ']'
-        raise RubyLisp::ParseError, "Unexpected ']'."
+        raise ParseError, "Unexpected ']'."
       when '}'
-        raise RubyLisp::ParseError, "Unexpected '}'."
+        raise ParseError, "Unexpected '}'."
       when "'"
         next_token
         read_quoted_form

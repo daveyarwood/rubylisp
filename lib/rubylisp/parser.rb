@@ -8,18 +8,18 @@ module RubyLisp
     module_function
 
     def read input
-      RubyLisp::Reader.read_str input
+      Reader.read_str input
     end
 
     def eval_ast input, env
-      RubyLisp::Evaluator.eval_ast input, env
+      Evaluator.eval_ast input, env
     end
 
     def print input
-      RubyLisp::Printer.pr_str input
+      Printer.pr_str input
     end
 
-    def parse input, env = RubyLisp::Environment.new.stdlib
+    def parse input, env = Environment.new.stdlib
       ast = read input
       result = eval_ast ast, env
       print result

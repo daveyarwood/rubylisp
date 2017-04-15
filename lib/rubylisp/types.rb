@@ -2,16 +2,15 @@ require 'hamster/core_ext'
 require 'hamster/hash'
 require 'hamster/list'
 require 'hamster/vector'
+require 'rubylisp/util'
+
+include RubyLisp::Util
 
 # Monkey-patch Ruby symbols to act more like Clojure keywords
 class Symbol
 	def name
-		to_s[1..-1]
+		inspect[1..-1]
 	end
-
-  def to_s
-    inspect
-  end
 
   def call(target)
     if [Hash, Hamster::Hash].member? target.class
@@ -52,20 +51,10 @@ end
 
 module RubyLisp
   class Value
-    attr_accessor :value, :quoted
+    attr_accessor :value
 
     def initialize(value)
       @value = value
-    end
-
-    def quote
-      @quoted = true
-      self
-    end
-
-    def unquote
-      @quoted = false
-      self
     end
 
     def to_s
@@ -73,76 +62,62 @@ module RubyLisp
     end
   end
 
-  class Boolean < Value; end
-  class Float < Value; end
-  class Int < Value; end
-  class Keyword < Value; end
-  class String < Value; end
-
   class ParseError < StandardError; end
   class RuntimeError < StandardError; end
 
-  class Function
-    attr_accessor :name, :env, :bindings, :body, :value
+  class Function < Proc
+    attr_accessor :name, :env, :bindings, :body, :is_macro
 
     def initialize(name, env, bindings, body)
+      super()
       @name = name
       @env = env
       @bindings = bindings
       @body = body
+      @is_macro = false
     end
-  end
 
-  class HashMap < Value
-    def initialize(seq)
-      if seq.size.odd?
-        raise RubyLisp::ParseError,
-          "A RubyLisp::HashMap must contain an even number of forms."
+    def gen_env(args)
+      env = Environment.new(outer: @env)
+      # so the fn can call itself recursively
+      env.set(@name, self)
+
+      sexp = list [Symbol.new(@name), *args]
+      if @bindings.any? {|binding| binding == '&'}
+        required_args = @bindings.count - 2
+        assert_at_least_n_args sexp, required_args
+
+        @bindings[0..-3].zip(args.take(required_args)).each do |k, v|
+          env.set(k, v)
+        end
+
+        rest_args = if args.count > required_args
+                      args[required_args..-1].to_list
+                    else
+                      nil
+                    end
+
+        env.set(@bindings.last, rest_args)
       else
-        @value = Hamster::Hash[seq.each_slice(2).to_a]
+        required_args = @bindings.count
+        assert_number_of_args sexp, required_args
+
+        @bindings.zip(args).each do |k, v|
+          env.set(k, v)
+        end
       end
-    end
 
-    def quote
-      @value.each {|k, v| k.quote; v.quote}
-      @quoted = true
-      self
-    end
-
-    def unquote
-      @value.each {|k, v| k.unquote; v.unquote}
-      @quoted = false
-      self
-    end
-  end
-
-  class List < Value
-    def initialize(values)
-      @value = values.to_list
-    end
-
-    def quote
-      @value.each(&:quote)
-      @quoted = true
-      self
-    end
-
-    def unquote
-      @value.each(&:unquote)
-      @quoted = false
-      self
-    end
-  end
-
-  class Nil < Value
-    def initialize
-      @value = nil
+      env
     end
   end
 
   class Symbol < Value
     def to_s
       @value
+    end
+
+    def ==(other)
+      other.is_a?(Symbol) && @value == other.value
     end
 
     def resolve(env)
@@ -162,9 +137,9 @@ module RubyLisp
         first_segment, *segments = @value.split('::')
         first_segment = Object.const_get first_segment
         return segments.reduce(first_segment) do |result, segment|
-          if result.class == Proc
+          if result.is_a? Proc
             # a method can only be in the final position
-            raise RubyLisp::RuntimeError, "Invalid value: #{@value}"
+            raise RuntimeError, "Invalid value: #{@value}"
           elsif /^[A-Z]/ =~ segment
             # get module/class constant
             result.const_get segment
@@ -181,21 +156,43 @@ module RubyLisp
     end
   end
 
-  class Vector < Value
-    def initialize(values)
-      @value = Hamster::Vector.new(values)
+  module Util
+    module_function
+
+    def hash_map(values)
+      if values.size.odd?
+        raise ParseError, "A hash-map must contain an even number of forms."
+      else
+        Hamster::Hash[values.each_slice(2).to_a]
+      end
     end
 
-    def quote
-      @value.each(&:quote)
-      @quoted = true
-      self
+    def map?(x)
+      x.is_a? Hamster::Hash
     end
 
-    def unquote
-      @value.each(&:unquote)
-      @quoted = false
-      self
+    def list(values)
+      values.to_list
+    end
+
+    def list?(x)
+      x.is_a? Hamster::List
+    end
+
+    def vec(values)
+      Hamster::Vector.new(values)
+    end
+
+    def vector(*values)
+      Hamster::Vector.new(values)
+    end
+
+    def vector?(x)
+      x.is_a? Hamster::Vector
+    end
+
+    def sequential?(x)
+      list?(x) || vector?(x)
     end
   end
 end

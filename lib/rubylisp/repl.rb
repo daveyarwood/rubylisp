@@ -7,12 +7,12 @@ module RubyLisp
     module_function
 
     def start
-      env = RubyLisp::Environment.new(namespace: 'user').stdlib.repl
+      env = Environment.new(namespace: 'user').stdlib.repl
 
       while buf = Readline.readline("#{env.namespace}> ", true)
         begin
           input = buf.nil? ? '' : buf.strip
-          puts input.empty? ? '' : RubyLisp::Parser.parse(input, env)
+          puts input.empty? ? '' : Parser.parse(input, env)
         rescue => e
           # If an error happens, print it like Ruby would and continue accepting
           # REPL input.

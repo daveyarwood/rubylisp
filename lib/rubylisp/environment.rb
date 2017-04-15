@@ -31,7 +31,7 @@ module RubyLisp
       if env
         env.vars[key]
       else
-        raise RubyLisp::RuntimeError, "Unable to resolve symbol: #{key}"
+        raise RuntimeError, "Unable to resolve symbol: #{key}"
       end
     end
 
@@ -55,8 +55,8 @@ module RubyLisp
       root = File.expand_path '../..', File.dirname(__FILE__)
       input = File.read "#{root}/#{path}"
 
-      namespace = RubyLisp::Environment.new
-      RubyLisp::Parser.parse input, namespace
+      namespace = Environment.new
+      Parser.parse input, namespace
       namespace
     end
 

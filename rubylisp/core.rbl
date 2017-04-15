@@ -102,11 +102,11 @@
 
 (def pos?
   (fn pos? [x]
-    (> (count x) 0)))
+    (> x 0)))
 
 (def neg?
   (fn neg? [x]
-    (< (count x) 0)))
+    (< x 0)))
 
 (def zero?
   (fn zero? [x]
@@ -176,12 +176,35 @@
 
 (def cons
   (fn cons [x y]
-    (let [lst (if (nil? y) (Hamster::List::empty) (.to_list y))]
+    (let [lst (if (nil? y) () (.to_list y))]
       (.cons lst x))))
+
+(def concat
+  (fn concat [& colls]
+    (if (nil? colls)
+      ()
+      (apply + (first colls) (map seq (rest colls))))))
+
+(def nth
+  ;; TODO: multiple arity fn
+  (fn nth [coll index & more]
+    (if more
+      (let [not-found (first more)]
+        (if (>= index (count coll))
+          not-found
+          (.at coll index)))
+      (if (>= index (count coll))
+        (Kernel::raise Kernel::IndexError)
+        (.at coll index)))))
 
 (def first
   (fn first [coll]
-    (.first coll)))
+    (if (not (nil? coll))
+      (.first coll))))
+
+(def second
+  (fn second [coll]
+    (nth coll 1)))
 
 (def last
   (fn last [coll]
@@ -189,13 +212,15 @@
 
 (def rest
   (fn rest [coll]
-    (let [lst (if (nil? coll) (Hamster::List::empty) (.to_list coll))]
+    (let [lst (if (nil? coll) () (.to_list coll))]
       (.tail lst))))
 
 (def take
   (fn take [n coll]
     (.to_list (.take coll n))))
 
+;; TODO: use Hamster::List::map instead for its laziness
+;; (prerequisite: block syntax)
 ;; TODO: support mapping over multiple collections
 (def map
   (fn map [f coll]
