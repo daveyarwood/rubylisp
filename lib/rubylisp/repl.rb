@@ -1,4 +1,4 @@
-require 'readline'
+require_relative 'rbl_readline'
 require 'rubylisp/environment'
 require 'rubylisp/parser'
 
@@ -9,7 +9,7 @@ module RubyLisp
     def start
       env = Environment.new(namespace: 'user').stdlib.repl
 
-      while buf = Readline.readline("#{env.namespace}> ", true)
+      while buf = _readline("#{env.namespace}> ")
         begin
           input = buf.nil? ? '' : buf.strip
           puts input.empty? ? '' : Parser.parse(input, env)
