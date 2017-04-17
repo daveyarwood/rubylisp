@@ -51,18 +51,20 @@ module RubyLisp
       if !pair?(ast)
         list [Symbol.new('quote'), ast]
       elsif vector? ast
-        list [Symbol.new('vec'), quasiquote(ast)]
+        list [Symbol.new('vec'), quasiquote(ast.to_list)]
       else
         elem_a, *elems = ast
 
         if elem_a.class == Symbol && elem_a.value == 'unquote'
-          ast.value[1]
+          elems[0]
         elsif pair?(elem_a) &&
               elem_a[0].class == Symbol &&
               elem_a[0].value == 'splice-unquote'
           list [Symbol.new('concat'), elem_a[1], quasiquote(elems)]
         else
-          list [Symbol.new('cons'), quasiquote(elem_a), quasiquote(elems)]
+          list [Symbol.new('cons'),
+                quasiquote(elem_a),
+                quasiquote(elems.to_list)]
         end
       end
     end
