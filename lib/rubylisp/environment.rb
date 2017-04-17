@@ -2,14 +2,28 @@ require 'rubylisp/parser'
 
 module RubyLisp
   class Environment
-    attr_accessor :namespace, :vars, :outer
+    attr_accessor :namespace, :vars, :outer, :is_namespace, :out_env
 
-    def initialize(outer: nil, namespace: nil)
+    def initialize(outer: nil, namespace: nil, is_namespace: false, out_env: nil)
       @vars = {'*ns*' => (outer or self)}
       @outer = outer
       @namespace = namespace or
                    (outer.namespace if outer) or
                    "__ns_#{rand 10000}"
+      @is_namespace = is_namespace
+      @out_env = if out_env
+                   out_env
+                 else
+                   find_namespace
+                 end
+    end
+
+    def find_namespace
+      env = self
+      while !env.is_namespace && !env.outer.nil?
+        env = env.outer
+      end
+      env
     end
 
     def set key, val

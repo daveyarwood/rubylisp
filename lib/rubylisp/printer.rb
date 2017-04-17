@@ -20,8 +20,10 @@ module RubyLisp
           "(#{x.map {|item| pr_str(item)}.join(' ')})"
         when Function
           "#<Function: #{x.name}>"
-        when Value
+        when Symbol
           x.value
+        when Value
+          x.value.inspect
         else
           x.inspect
         end

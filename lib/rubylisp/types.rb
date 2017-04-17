@@ -1,3 +1,4 @@
+require 'concurrent/atom'
 require 'hamster/core_ext'
 require 'hamster/hash'
 require 'hamster/list'
@@ -66,19 +67,24 @@ module RubyLisp
   class RuntimeError < StandardError; end
 
   class Function < Proc
-    attr_accessor :name, :env, :bindings, :body, :is_macro
+    attr_accessor :name, :env, :bindings, :body, :is_macro, :lambda
 
-    def initialize(name, env, bindings, body)
+    def initialize(name, env, bindings, body, &block)
       super()
       @name = name
       @env = env
       @bindings = bindings
       @body = body
       @is_macro = false
+      @lambda = block
     end
 
-    def gen_env(args)
-      env = Environment.new(outer: @env)
+    def gen_env(args, env)
+      # set out_env to the current namespace so that `def` occurring within
+      # the fn's environment will define things in the namespace in which the
+      # function is called
+      out_env = env.out_env || env.find_namespace
+      env = Environment.new(outer: @env, out_env: out_env)
       # so the fn can call itself recursively
       env.set(@name, self)
 

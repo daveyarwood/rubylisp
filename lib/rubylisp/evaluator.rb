@@ -9,9 +9,9 @@ module RubyLisp
   module Evaluator
     module_function
 
-    SPECIAL_FORMS = ['apply', 'def', 'defmacro', 'do', 'fn', 'if', 'in-ns',
-                     'let', 'macroexpand', 'macroexpand-1', 'ns', 'quasiquote',
-                     'quote', 'resolve']
+    SPECIAL_FORMS = ['apply', 'call-with-block', 'def', 'defmacro', 'do',
+                     'eval', 'fn', 'if', 'in-ns', 'let', 'macroexpand',
+                     'macroexpand-1', 'ns', 'quasiquote', 'quote', 'resolve']
 
     def macro_call? ast, env
       unless ast.class == Hamster::List
@@ -111,10 +111,38 @@ module RubyLisp
             sexp = list [Symbol.new("apply"), fn]
             assert_arg_type sexp, 1, [Function, Proc]
             return fn.call(*args)
+          # Provides a way to call a Ruby method that expects a block. Blocks
+          # are not first-class in Ruby, but they have similar semantics to
+          # functions.
+          #
+          # The last argument to call-with-block can be a Function or
+          # Proc that takes any number of arguments; it will be provided to the
+          # instance method as a block.
+          #
+          # ruby: instance.method(arg1, arg2, arg3) { do_something }
+          # rbl: (call-with-block .method instance [arg1 arg2 arg3] fn)
+          elsif special_form? input, 'call-with-block'
+            assert_number_of_args input, 4
+
+            assert_arg_type input, 1, Symbol
+
+            sexp = input[2..-1].map {|form| eval_ast(form, env)}
+                               .cons(input[1].value[1..-1].to_sym)
+                               .cons(input[0])
+
+            assert_arg_type sexp, 3, [Hamster::List, Hamster::Vector]
+            assert_arg_type sexp, 4, [Function, Proc]
+
+            method, receiver, method_args, fn = sexp[1..-1]
+
+            return receiver.send(method, *method_args) do |*block_args|
+              fn.call(*block_args)
+            end
           elsif special_form? input, 'def'
             assert_arg_type input, 1, Symbol
-            key, val = input[1..-1]
-            return env.set key.value, eval_ast(val, env)
+            k, v = input[1..-1]
+            key, val = [k.value, eval_ast(v, env)]
+            return env.out_env.set key, val
           # TODO: give this a different name and define a defmacro macro?
           elsif special_form? input, 'defmacro'
             assert_arg_type input, 1, Symbol
@@ -128,6 +156,11 @@ module RubyLisp
             body[0..-2].each {|form| eval_ast(form, env)}
             # recur; evaluate and return the last form
             input = body.last
+          elsif special_form? input, 'eval'
+            assert_number_of_args input, 1
+
+            form = eval_ast(input[1], env)
+            input = form
           elsif special_form? input, 'fn'
             if input[1].class == Symbol
               fn_name = input[1].value
@@ -159,8 +192,7 @@ module RubyLisp
             end
 
             return fn = Function.new(fn_name, env, bindings, body) {|*fn_args|
-              env = Environment.new(outer: env)
-              eval_ast body, fn.gen_env(fn_args)
+              eval_ast body, fn.gen_env(fn_args, env)
             }
           elsif special_form? input, 'if'
             unless input[1..-1].count > 1
@@ -183,6 +215,7 @@ module RubyLisp
             assert_arg_type input, 1, Symbol
             ns_name = input[1].to_s
             # TODO: register ns and switch to it
+            env.is_namespace = true
             return env.namespace = ns_name
           elsif special_form? input, 'let'
             assert_arg_type input, 1, Hamster::Vector
@@ -194,12 +227,12 @@ module RubyLisp
                     " of forms."
             end
 
-            bindings.each_slice(2) do |(k, v)|
-              inner_env.set k.value, eval_ast(v, inner_env)
+            bindings.each_slice(2) do |(binding, value)|
+              inner_env.set binding.value, eval_ast(value, inner_env)
             end
 
             # discard the return values of all but the last form
-            body[0..-2].each {|form| eval_ast(form, inner_env)}
+            body[0..-2].each {|expr| eval_ast(expr, inner_env)}
             # recur; evaluate and return the last form's value
             env = inner_env
             input = body.last
@@ -219,6 +252,7 @@ module RubyLisp
             assert_arg_type input, 1, Symbol
             ns_name = input[1].to_s
             # TODO: register ns and switch to it
+            env.is_namespace = true
             return env.namespace = ns_name
           elsif special_form? input, 'quasiquote'
             assert_number_of_args input, 1
@@ -226,7 +260,7 @@ module RubyLisp
             input = quasiquote(ast)
           elsif special_form? input, 'quote'
             assert_number_of_args input, 1
-            input[1]
+            return input[1]
           elsif special_form? input, 'resolve'
             assert_number_of_args input, 1
             symbol = eval_ast(input[1], env)
@@ -240,7 +274,7 @@ module RubyLisp
               # inner environment where the function's bindings are set to the
               # values of the arguments
               input = fn.body
-              env = fn.gen_env(args)
+              env = fn.gen_env(args, env)
             else
               return fn.call(*args)
             end

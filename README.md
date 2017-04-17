@@ -29,8 +29,9 @@ I think I was right. Check it out, everyone -- you can write your Ruby scripts i
 * Fire up a REPL or run it in a script.
 * Immutable linked lists, vectors, and hashes courtesy of the [Hamster][hamster]
   library.
-* _(TODO)_ Macros, Clojure-style.
-* _(TODO)_ Namespaces, Clojure-style.
+* Clojure-style atoms, courtesy of [concurrent-ruby][concurrent].
+* _(TODO)_ Clojure-style macros.
+* _(TODO)_ Clojure-style namespaces.
 * _(TODO)_ Dependency management / the ability to use some sort of build tool to
   include Ruby libraries and use them via inter-op.
 
@@ -271,3 +272,4 @@ The gem is available as open source under the terms of the [MIT License](http://
 [ruby]: http://ruby-lang.org
 [mal]: https://github.com/kanaka/mal
 [hamster]: https://github.com/hamstergem/hamster
+[concurrent]: https://github.com/ruby-concurrency/concurrent-ruby

@@ -2,13 +2,13 @@
 ; and, or
 ; implement macros
 ; defn
-; str
 ; comment
 ; ->, ->>
 ; private vars/fns
 ; if-not, when, when-not, if-let, when-let
 ; cond
 ; case
+; destructuring
 
 (ns rubylisp.core)
 
@@ -112,7 +112,7 @@
   (fn zero? [x]
     (= 0 x)))
 
-;; LISTS & COLLECTIONS
+;; LISTS & OTHER COLLECTIONS
 
 (def nil?
   (fn nil? [x]
@@ -155,6 +155,19 @@
   (fn vector? [x]
     (.is_a? x Hamster::Vector)))
 
+;; TODO: implement `or` and use it here
+(def sequential?
+  (fn sequential? [x]
+    (if (list? x)
+      true
+      (if (vector? x)
+        true
+        (if (.is_a? x Kernel::Array)
+          true
+          false)
+        false)
+      false)))
+
 (def vec
   (fn vec [coll]
     (Hamster::Vector::new coll)))
@@ -179,11 +192,14 @@
     (let [lst (if (nil? y) () (.to_list y))]
       (.cons lst x))))
 
+;; TODO: define cond and use it here
 (def concat
   (fn concat [& colls]
     (if (nil? colls)
       ()
-      (apply + (first colls) (map seq (rest colls))))))
+      (if (= 1 (count colls))
+        (first colls)
+        (apply + (first colls) (map seq (rest colls)))))))
 
 (def nth
   ;; TODO: multiple arity fn
@@ -264,6 +280,15 @@
       x
       (.name x))))
 
+(def read-string
+  (fn read-string [s]
+    (first (RubyLisp::Reader::read_str s))))
+
+;; problem: this is defined in rubylisp.core, so code is evaluated there
+(def load-string
+  (fn load-string [s]
+    (eval (RubyLisp::Reader::read_str s))))
+
 ;; I/O
 
 (def pr-str
@@ -287,6 +312,14 @@
     (Kernel::puts (.join (map str args) " "))
     nil))
 
+(def slurp
+  (fn slurp [filename]
+    (File::read filename)))
+
+(def load-file
+  (fn load-file [filename]
+    (load-string (slurp filename))))
+
 ;; RUBY INTEROP
 
 (def =@
@@ -297,3 +330,24 @@
   (fn class [x]
     (.class x)))
 
+;; CONCURRENCY
+
+(def deref
+  (fn deref [x]
+    (.deref x)))
+
+(def atom
+  (fn atom [value]
+    (Concurrent::Atom::new value)))
+
+(def atom?
+  (fn atom? [value]
+    (.is_a? value Concurrent::Atom)))
+
+(def swap!
+  (fn swap! [a f & args]
+    (call-with-block .swap a (if (nil? args) [] args) f)))
+
+(def reset!
+  (fn reset! [a new-value]
+    (.reset a new-value)))
