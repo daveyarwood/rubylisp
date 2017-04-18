@@ -17,7 +17,9 @@ def _readline(prompt)
   end
 
   if line = Readline.readline(prompt, true)
-    if File.writable?($histfile)
+    if line.strip.empty? || Readline::HISTORY[-2] == Readline::HISTORY[-1]
+      Readline::HISTORY.pop
+    elsif File.writable?($histfile)
       File.open($histfile, 'a+') {|f| f.write(line+"\n")}
     end
     return line

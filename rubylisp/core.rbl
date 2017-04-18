@@ -6,348 +6,431 @@
 ; ->, ->>
 ; private vars/fns
 ; if-not, when, when-not, if-let, when-let
-; cond
 ; case
 ; destructuring
+; gensym and gensym# syntax for macros
 
 (ns rubylisp.core)
 
-;; MATH & LOGIC
-
-(def +
-  (fn + [x y & more]
-    (let [xy (.+ x y)]
-      (if more
-        (apply + xy more)
-        xy))))
-
-(def -
-  (fn - [x y & more]
-    (let [xy (.- x y)]
-      (if more
-        (apply - xy more)
-        xy))))
-
-(def inc
-  (fn inc [x]
-    (+ x 1)))
-
-(def dec
-  (fn dec [x]
-    (- x 1)))
-
-(def *
-  (fn * [x y & more]
-    (let [xy (.* x y)]
-      (if more
-        (apply * xy more)
-        xy))))
-
-(def /
-  (fn / [x y & more]
-    (let [xy (./ x y)]
-      (if more
-        (apply / xy more)
-        xy))))
-
-(def <
-  (fn < [x y & more]
-    (let [xy (.< x y)]
-      (if more
-        (apply < xy more)
-        xy))))
-
-(def <=
-  (fn <= [x y & more]
-    (let [xy (.<= x y)]
-      (if more
-        (apply <= xy more)
-        xy))))
-
-(def =
-  (fn = [x y & more]
-    (let [xy (.== x y)]
-      (if more
-        (apply = xy more)
-        xy))))
-
-(def not=
-  (fn not= [x y & more]
-    (let [xy (.!= x y)]
-      (if more
-        (apply not= xy more)
-        xy))))
-
-(def boolean
-  (fn boolean [x]
-    (if x true false)))
-
-(def not
-  (fn not [x]
-    (if x false true)))
-
-(def >
-  (fn > [x y & more]
-    (let [xy (.> x y)]
-      (if more
-        (apply > xy more)
-        xy))))
-
-(def >=
-  (fn >= [x y & more]
-    (let [xy (.>= x y)]
-      (if more
-        (apply >= xy more)
-        xy))))
-
-(def pos?
-  (fn pos? [x]
-    (> x 0)))
-
-(def neg?
-  (fn neg? [x]
-    (< x 0)))
-
-(def zero?
-  (fn zero? [x]
-    (= 0 x)))
-
-;; LISTS & OTHER COLLECTIONS
-
-(def nil?
-  (fn nil? [x]
-    (= nil x)))
-
-(def string?
-  (fn string? [x]
-    (.is_a? x Kernel::String)))
-
-;; TODO: implement & use cond
-(def count
-  (fn count [x]
-    (if (nil? x)
-      0
-      (if (string? x)
-        (.count (seq x))
-        (.count x)))))
-
-(def empty?
-  (fn empty? [coll]
-    (if (nil? coll)
-      true
-      (.empty? coll))))
-
-(def list
-  (fn list [& args]
-    (.to_list (if (nil? args)
-                []
-                args))))
-
-(def list?
-  (fn list? [x]
-    (.is_a? x Hamster::List)))
-
-(def vector
-  (fn vector [& args]
-    (Hamster::Vector::new args)))
-
-(def vector?
-  (fn vector? [x]
-    (.is_a? x Hamster::Vector)))
-
-;; TODO: implement `or` and use it here
-(def sequential?
-  (fn sequential? [x]
-    (if (list? x)
-      true
-      (if (vector? x)
-        true
-        (if (.is_a? x Kernel::Array)
-          true
-          false)
-        false)
-      false)))
-
-(def vec
-  (fn vec [coll]
-    (Hamster::Vector::new coll)))
-
-(def hash-map
-	(fn hash-map [& args]
-    (Hamster::Hash::new (.to_h (.each_slice args 2)))))
-
-(def map?
-  (fn map? [x]
-    (.is_a? x Hamster::Hash)))
+;; awkwardly defined basic functions that will make it easier to define other
+;; functions and macros
 
 (def seq
   (fn seq [x]
-    (if (not (empty? x))
-      (if (string? x)
-        (.to_list (.chars x))
-        (.to_list x)))))
+    (if (.nil? x)
+      nil
+      (if (.empty? x)
+        nil
+        (if (.is_a? x Kernel::String)
+          (.to_list (.chars x))
+          (.to_list x))))))
+
+(def count
+  (fn count [x]
+   (let [coll (seq x)]
+     (if (.nil? coll)
+       0
+       (.count coll)))))
+
+(def empty?
+  (fn empty? [coll]
+   (if (.nil? coll)
+     true
+     (.empty? coll))))
 
 (def cons
   (fn cons [x y]
-    (let [lst (if (nil? y) () (.to_list y))]
+    (let [lst (if (.nil? y) () (.to_list y))]
       (.cons lst x))))
 
-;; TODO: define cond and use it here
 (def concat
   (fn concat [& colls]
-    (if (nil? colls)
+    (if (.nil? colls)
       ()
-      (if (= 1 (count colls))
-        (first colls)
-        (apply + (first colls) (map seq (rest colls)))))))
+      (if (.== 1 (.count colls))
+        (.to_list (.first colls))
+        (.+ (.to_list (.first colls)) (apply concat (.drop colls 1)))))))
 
-(def nth
-  ;; TODO: multiple arity fn
-  (fn nth [coll index & more]
+;; defn, defmacro
+
+;; TODO: docstring support
+;; TODO: multiple arity
+(defmacro* defmacro
+  (fn [name bindings & body]
+    `(defmacro* ~name
+       (fn ~name ~bindings
+         ~@body))))
+
+;; TODO: docstring support
+;; TODO: multiple arity
+(defmacro defn
+  [name bindings & body]
+  `(def ~name
+     (fn ~name ~bindings
+       ~@body)))
+
+;; CONTROL FLOW
+
+(defn throw
+  [e]
+  (Kernel::raise e))
+
+(defmacro cond
+  [& xs]
+  (if (.> (count xs) 0)
+    (list 'if (.first xs)
+            (if (.> (count xs) 1)
+              (.at xs 1)
+              (throw "`cond` requires an even number of forms."))
+            (cons 'cond (.drop xs 2)))))
+
+;; MATH & LOGIC
+
+(defmacro or
+  [& xs]
+  (cond
+    (empty? xs)
+    nil
+
+    (.== 1 (count xs))
+    (.first xs)
+
+    ;; FIXME: implement gensym and use it here so the macro is hygenic
+    :else
+    `(let [or_FIXME ~(first xs)]
+       (if or_FIXME or_FIXME (or ~@(.drop xs 1))))))
+
+(defmacro and
+  [& xs]
+  (cond
+    (empty? xs)
+    true
+
+    (.== 1 (count xs))
+    (.first xs)
+
+    ;; FIXME: implement gensym and use it here so the macro is hygenic
+    :else
+    `(let [and_FIXME ~(first xs)]
+       (if and_FIXME (and ~@(.drop xs 1)) and_FIXME))))
+
+(defn +
+  [x y & more]
+  (let [xy (.+ x y)]
     (if more
-      (let [not-found (first more)]
-        (if (>= index (count coll))
-          not-found
-          (.at coll index)))
+      (apply + xy more)
+      xy)))
+
+(defn -
+  [x y & more]
+  (let [xy (.- x y)]
+    (if more
+      (apply - xy more)
+      xy)))
+
+(defn inc
+  [x]
+  (+ x 1))
+
+(defn dec
+  [x]
+  (- x 1))
+
+(defn *
+  [x y & more]
+  (let [xy (.* x y)]
+    (if more
+      (apply * xy more)
+      xy)))
+
+(defn /
+  [x y & more]
+  (let [xy (./ x y)]
+    (if more
+      (apply / xy more)
+      xy)))
+
+;; FIXME
+(defn <
+  [x y & more]
+  (let [xy (.< x y)]
+    (if more
+      (apply < xy more)
+      xy)))
+
+;; FIXME
+(defn <=
+  [x y & more]
+  (let [xy (.<= x y)]
+    (if more
+      (apply <= xy more)
+      xy)))
+
+;; FIXME
+(defn =
+  [x y & more]
+  (let [xy (.== x y)]
+    (if more
+      (apply = xy more)
+      xy)))
+
+;; FIXME
+(defn not=
+  [x y & more]
+  (let [xy (.!= x y)]
+    (if more
+      (apply not= xy more)
+      xy)))
+
+(defn boolean
+  [x]
+  (if x true false))
+
+(defn not
+  [x]
+  (if x false true))
+
+;; FIXME
+(defn >
+  [x y & more]
+  (let [xy (.> x y)]
+    (if more
+      (apply > xy more)
+      xy)))
+
+;; FIXME
+(defn >=
+  [x y & more]
+  (let [xy (.>= x y)]
+    (if more
+      (apply >= xy more)
+      xy)))
+
+(defn pos?
+  [x]
+  (> x 0))
+
+(defn neg?
+  [x]
+  (< x 0))
+
+(defn zero?
+  [x]
+  (= 0 x))
+
+;; LISTS & OTHER COLLECTIONS
+
+(defn nil?
+  [x]
+  (= nil x))
+
+(defn string?
+  [x]
+  (.is_a? x Kernel::String))
+
+(defn list
+  [& args]
+  (.to_list (if (nil? args)
+              []
+              args)))
+
+(defn list?
+  [x]
+  (.is_a? x Hamster::List))
+
+(defn vector
+  [& args]
+  (Hamster::Vector::new args))
+
+(defn vector?
+  [x]
+  (.is_a? x Hamster::Vector))
+
+;; TODO: implement `or` and use it here
+(defn sequential?
+  [x]
+  (or (list? x) (vector? x) (.is_a? x Kernel::Array)))
+
+(defn vec
+  [coll]
+  (Hamster::Vector::new coll))
+
+(defn hash-map
+  [& args]
+  (Hamster::Hash::new (.to_h (.each_slice args 2))))
+
+(defn map?
+  [x]
+  (.is_a? x Hamster::Hash))
+
+;; TODO: multiple arity fn
+(defn nth
+  [coll index & more]
+  (if more
+    (let [not-found (first more)]
       (if (>= index (count coll))
-        (Kernel::raise Kernel::IndexError)
-        (.at coll index)))))
+        not-found
+        (.at coll index)))
+    (if (>= index (count coll))
+      (Kernel::raise Kernel::IndexError)
+      (.at coll index))))
 
-(def first
-  (fn first [coll]
-    (if (not (nil? coll))
-      (.first coll))))
+(defn first
+  [coll]
+  (if (not (nil? coll))
+    (.first coll)))
 
-(def second
-  (fn second [coll]
-    (nth coll 1)))
+(defn ffirst
+  [coll]
+  (first (first coll)))
 
-(def last
-  (fn last [coll]
-    (.last coll)))
+(defn second
+  [coll]
+  (nth coll 1))
 
-(def rest
-  (fn rest [coll]
-    (let [lst (if (nil? coll) () (.to_list coll))]
-      (.tail lst))))
+(defn last
+  [coll]
+  (.last coll))
 
-(def take
-  (fn take [n coll]
-    (.to_list (.take coll n))))
+(defn rest
+  [coll]
+  (let [lst (if (nil? coll) () (.to_list coll))]
+    (.tail lst)))
 
-;; TODO: use Hamster::List::map instead for its laziness
-;; (prerequisite: block syntax)
+(defn take
+  [n coll]
+  (.to_list (.take coll n)))
+
 ;; TODO: support mapping over multiple collections
-(def map
-  (fn map [f coll]
-    (if (empty? coll)
-      ()
-      (cons (f (first coll)) (map f (rest coll))))))
+(defn map
+  [f coll]
+  (if (empty? coll)
+    ()
+    (cons (f (first coll))
+          (call-with-block .map (rest coll) [] f))))
 
-(def reverse
-  (fn reverse [coll]
-    (if (empty? coll)
-      coll
-      (+ [(last coll)]
-         (reverse (.slice coll 0 (dec (count coll))))))))
+(defn reverse
+  [coll]
+  (if (empty? coll)
+    coll
+    (+ [(last coll)]
+       (reverse (.slice coll 0 (dec (count coll)))))))
+
+;; TODO: multiple arity fn
+(defn range
+  [& args]
+  (cond
+    (zero? (count args))
+    ;; requires adjusting call-with-block so that it can use namespaced methods
+    "TODO: zero-arity that produces a lazy list, i.e. Hamster::iterate(0, &:next)"
+
+    (= 1 (count args))
+    (apply range 0 args)
+
+    :else
+    (let [start (first args)
+          end   (dec (second args))]
+      (Hamster::interval start end))))
 
 ;; TODO: implement as multiple arity fn
-;; TODO: zero-arity that produces a lazy list, i.e. Hamster::iterate(0,
-;; &:next).take(5)
-;; (requires some kind of block syntax)
-(def range
-  (fn range [& args]
-    (if (= 1 (count args))
-      (apply range 0 args)
-      (apply Hamster::interval args))))
+(defn repeat
+  [& args]
+  (if (= 1 (count args))
+    (apply Hamster::repeat args)
+    (apply Hamster::replicate args)))
 
 ;; TODO: implement as multiple arity fn
-(def repeat
-  (fn repeat [& args]
-    (if (= 1 (count args))
-      (apply Hamster::repeat args)
-      (apply Hamster::replicate args))))
+(defn reduce
+  [f & args]
+  (if (= 1 (count args))
+    (let [xs (first args)]
+      (reduce f (first xs) (rest xs)))
+    (let [init (first args)
+          xs   (second args)]
+      (if (zero? (count xs))
+        init
+        (reduce f (f init (first xs)) (rest xs))))))
 
 ;; STRINGS & KEYWORDS
 
-(def str
-  (fn str [& args]
-    (.join (map .to_s args))))
+(defn str
+  [& args]
+  (.join (map .to_s args)))
 
-(def name
-  (fn name [x]
-    (if (string? x)
-      x
-      (.name x))))
+(defn name
+  [x]
+  (if (string? x)
+    x
+    (.name x)))
 
-(def read-string
-  (fn read-string [s]
-    (first (RubyLisp::Reader::read_str s))))
+(defn read-string
+  [s]
+  (first (RubyLisp::Reader::read_str s)))
 
 ;; problem: this is defined in rubylisp.core, so code is evaluated there
-(def load-string
-  (fn load-string [s]
-    (eval (RubyLisp::Reader::read_str s))))
+(defn load-string
+  [s]
+  (eval (RubyLisp::Reader::read_str s)))
 
 ;; I/O
 
-(def pr-str
-  (fn pr-str [& args]
-    (if (zero? (count args))
-      ""
-      (apply RubyLisp::Printer::pr_str args))))
+(defn pr-str
+  [& args]
+  (if (zero? (count args))
+    ""
+    (apply RubyLisp::Printer::pr_str args)))
 
-(def prn
-  (fn prn [& args]
-    (Kernel::puts (apply pr-str args))
-    nil))
+(defn prn
+  [& args]
+  (Kernel::puts (apply pr-str args))
+  nil)
 
-(def print
-  (fn print [& args]
-    (Kernel::print (.join (map str args) " "))
-    nil))
+(defn print
+  [& args]
+  (Kernel::print (.join (map str args) " "))
+  nil)
 
-(def println
-  (fn print [& args]
-    (Kernel::puts (.join (map str args) " "))
-    nil))
+(defn println
+  [& args]
+  (Kernel::puts (.join (map str args) " "))
+  nil)
 
-(def slurp
-  (fn slurp [filename]
-    (File::read filename)))
+(defn slurp
+  [filename]
+  (File::read filename))
 
-(def load-file
-  (fn load-file [filename]
-    (load-string (slurp filename))))
+(defn load-file
+  [filename]
+  (load-string (slurp filename)))
 
 ;; RUBY INTEROP
 
-(def =@
-  (fn =@ [obj kw value]
-    (.instance_variable_set obj (.to_sym (+ "@" (name kw))) value)))
+(defn =@
+  [obj kw value]
+  (.instance_variable_set obj (.to_sym (+ "@" (name kw))) value))
 
-(def class
-  (fn class [x]
-    (.class x)))
+(defn class
+  [x]
+  (.class x))
 
 ;; CONCURRENCY
 
-(def deref
-  (fn deref [x]
-    (.deref x)))
+(defn deref
+  [x]
+  (.deref x))
 
-(def atom
-  (fn atom [value]
-    (Concurrent::Atom::new value)))
+(defn atom
+  [value]
+  (Concurrent::Atom::new value))
 
-(def atom?
-  (fn atom? [value]
-    (.is_a? value Concurrent::Atom)))
+(defn atom?
+  [value]
+  (.is_a? value Concurrent::Atom))
 
-(def swap!
-  (fn swap! [a f & args]
-    (call-with-block .swap a (if (nil? args) [] args) f)))
+(defn swap!
+  [a f & args]
+  (call-with-block .swap a (if (nil? args) [] args) f))
 
-(def reset!
-  (fn reset! [a new-value]
-    (.reset a new-value)))
+(defn reset!
+  [a new-value]
+  (.reset a new-value))

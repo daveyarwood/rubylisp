@@ -9,36 +9,19 @@ module RubyLisp
   module Evaluator
     module_function
 
-    SPECIAL_FORMS = ['apply', 'call-with-block', 'def', 'defmacro', 'do',
-                     'eval', 'fn', 'if', 'in-ns', 'let', 'macroexpand',
-                     'macroexpand-1', 'ns', 'quasiquote', 'quote', 'resolve']
-
     def macro_call? ast, env
-      unless ast.class == Hamster::List
-        return false
-      end
-
+      return false unless ast.is_a? Hamster::List
       symbol = ast[0]
-
-      unless symbol.class == Symbol
-        return false
-      end
-
-      if SPECIAL_FORMS.member? symbol
-        return false
-      end
-
+      return false unless symbol.class == Symbol
+      return false unless env.find(symbol.value)
       value = symbol.resolve(env)
       value.class == Function && value.is_macro
     end
 
-    def macroexpand_1 input, env
-      eval_ast input, env, recursive: false, do_macroexpansion: false
-    end
-
     def macroexpand input, env
       while macro_call? input, env
-        input = macroexpand_1(input, env)
+        macro = input[0].resolve(env)
+        input = macro.call(*input[1..-1])
       end
       input
     end
@@ -73,13 +56,12 @@ module RubyLisp
       input[0].class == Symbol && input[0].value == name
     end
 
-    def eval_ast input, env, recursive: true, do_macroexpansion: true
+    def eval_ast input, env
       # loop forever until a value is returned;
       # this is for tail call optimization
       while true
-        if macro_call?(input, env) && do_macroexpansion
-          input = macroexpand_1(input, env)
-        end
+        # (no-op if this is not a macro call)
+        input = macroexpand(input, env)
 
         case input
         when Array # of ASTs to be evaluated, e.g. multiple expressions in a file
@@ -145,8 +127,7 @@ module RubyLisp
             k, v = input[1..-1]
             key, val = [k.value, eval_ast(v, env)]
             return env.out_env.set key, val
-          # TODO: give this a different name and define a defmacro macro?
-          elsif special_form? input, 'defmacro'
+          elsif special_form? input, 'defmacro*'
             assert_arg_type input, 1, Symbol
             key, val = input[1..-1]
             macro = eval_ast(val, env)
@@ -240,10 +221,8 @@ module RubyLisp
             input = body.last
           elsif special_form? input, 'macroexpand'
             assert_number_of_args input, 1
-            return macroexpand(input[1], env)
-          elsif special_form? input, 'macroexpand-1'
-            assert_number_of_args input, 1
-            return macroexpand_1(input[1], env)
+            form = eval_ast(input[1], env)
+            return macroexpand(form, env)
           elsif special_form? input, 'ns'
             # ns will be defined more robustly in rbl.core, but rbl.core also
             # needs the `ns` form in order to declare that it is rbl.core.
@@ -290,7 +269,6 @@ module RubyLisp
         else
           return input
         end
-        return input unless recursive
       end
     end
   end
