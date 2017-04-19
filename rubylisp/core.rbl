@@ -1,7 +1,4 @@
 ; TODO:
-; and, or
-; implement macros
-; defn
 ; comment
 ; ->, ->>
 ; private vars/fns
@@ -9,6 +6,15 @@
 ; case
 ; destructuring
 ; gensym and gensym# syntax for macros
+; throw an error when an undefined symbol is used in a fn or macro definition
+; make strings enumerable, e.g.
+;  (apply str "hello") should return "hello"
+;  (take 3 "hello") should return ("h" "e" "l")
+;  note: (seq "hello") already returns ("h" "e" "l" "l" "o") because of special
+;        logic in the definition of seq
+; make equality semantics work like clojure's:
+;   (= 2 2.0) should be false
+;   (== 2 2.0) should be true
 
 (ns rubylisp.core)
 
@@ -71,6 +77,14 @@
 
 ;; CONTROL FLOW
 
+(defn boolean
+  [x]
+  (if x true false))
+
+(defn not
+  [x]
+  (if x false true))
+
 (defn throw
   [e]
   (Kernel::raise e))
@@ -84,8 +98,6 @@
               (throw "`cond` requires an even number of forms."))
             (cons 'cond (.drop xs 2)))))
 
-;; MATH & LOGIC
-
 (defmacro or
   [& xs]
   (cond
@@ -97,7 +109,7 @@
 
     ;; FIXME: implement gensym and use it here so the macro is hygenic
     :else
-    `(let [or_FIXME ~(first xs)]
+    `(let [or_FIXME ~(.first xs)]
        (if or_FIXME or_FIXME (or ~@(.drop xs 1))))))
 
 (defmacro and
@@ -111,118 +123,14 @@
 
     ;; FIXME: implement gensym and use it here so the macro is hygenic
     :else
-    `(let [and_FIXME ~(first xs)]
+    `(let [and_FIXME ~(.first xs)]
        (if and_FIXME (and ~@(.drop xs 1)) and_FIXME))))
-
-(defn +
-  [x y & more]
-  (let [xy (.+ x y)]
-    (if more
-      (apply + xy more)
-      xy)))
-
-(defn -
-  [x y & more]
-  (let [xy (.- x y)]
-    (if more
-      (apply - xy more)
-      xy)))
-
-(defn inc
-  [x]
-  (+ x 1))
-
-(defn dec
-  [x]
-  (- x 1))
-
-(defn *
-  [x y & more]
-  (let [xy (.* x y)]
-    (if more
-      (apply * xy more)
-      xy)))
-
-(defn /
-  [x y & more]
-  (let [xy (./ x y)]
-    (if more
-      (apply / xy more)
-      xy)))
-
-;; FIXME
-(defn <
-  [x y & more]
-  (let [xy (.< x y)]
-    (if more
-      (apply < xy more)
-      xy)))
-
-;; FIXME
-(defn <=
-  [x y & more]
-  (let [xy (.<= x y)]
-    (if more
-      (apply <= xy more)
-      xy)))
-
-;; FIXME
-(defn =
-  [x y & more]
-  (let [xy (.== x y)]
-    (if more
-      (apply = xy more)
-      xy)))
-
-;; FIXME
-(defn not=
-  [x y & more]
-  (let [xy (.!= x y)]
-    (if more
-      (apply not= xy more)
-      xy)))
-
-(defn boolean
-  [x]
-  (if x true false))
-
-(defn not
-  [x]
-  (if x false true))
-
-;; FIXME
-(defn >
-  [x y & more]
-  (let [xy (.> x y)]
-    (if more
-      (apply > xy more)
-      xy)))
-
-;; FIXME
-(defn >=
-  [x y & more]
-  (let [xy (.>= x y)]
-    (if more
-      (apply >= xy more)
-      xy)))
-
-(defn pos?
-  [x]
-  (> x 0))
-
-(defn neg?
-  [x]
-  (< x 0))
-
-(defn zero?
-  [x]
-  (= 0 x))
 
 ;; LISTS & OTHER COLLECTIONS
 
 (defn nil?
   [x]
-  (= nil x))
+  (.== nil x))
 
 (defn string?
   [x]
@@ -267,11 +175,11 @@
 (defn nth
   [coll index & more]
   (if more
-    (let [not-found (first more)]
-      (if (>= index (count coll))
+    (let [not-found (.first more)]
+      (if (.>= index (count coll))
         not-found
         (.at coll index)))
-    (if (>= index (count coll))
+    (if (.>= index (count coll))
       (Kernel::raise Kernel::IndexError)
       (.at coll index))))
 
@@ -301,6 +209,10 @@
   [n coll]
   (.to_list (.take coll n)))
 
+(defn butlast
+  [coll]
+  (take (.- (count coll) 1) coll))
+
 ;; TODO: support mapping over multiple collections
 (defn map
   [f coll]
@@ -313,43 +225,122 @@
   [coll]
   (if (empty? coll)
     coll
-    (+ [(last coll)]
-       (reverse (.slice coll 0 (dec (count coll)))))))
+    (cons (last coll) (reverse (butlast coll)))))
 
 ;; TODO: multiple arity fn
 (defn range
   [& args]
   (cond
-    (zero? (count args))
+    (.== 0 (count args))
     ;; requires adjusting call-with-block so that it can use namespaced methods
     "TODO: zero-arity that produces a lazy list, i.e. Hamster::iterate(0, &:next)"
 
-    (= 1 (count args))
+    (.== 1 (count args))
     (apply range 0 args)
 
     :else
     (let [start (first args)
-          end   (dec (second args))]
+          end   (.- (second args) 1)]
       (Hamster::interval start end))))
 
 ;; TODO: implement as multiple arity fn
 (defn repeat
   [& args]
-  (if (= 1 (count args))
+  (if (.== 1 (count args))
     (apply Hamster::repeat args)
     (apply Hamster::replicate args)))
 
 ;; TODO: implement as multiple arity fn
 (defn reduce
   [f & args]
-  (if (= 1 (count args))
+  (if (.== 1 (count args))
     (let [xs (first args)]
       (reduce f (first xs) (rest xs)))
     (let [init (first args)
           xs   (second args)]
-      (if (zero? (count xs))
+      (if (.== 0 (count xs))
         init
         (reduce f (f init (first xs)) (rest xs))))))
+
+;; MATH & LOGIC
+
+;; TODO: zero arity that returns 0
+;; TODO: one arity that returns x
+(defn +
+  [x y & more]
+  (let [xy (.+ x y)]
+    (if more
+      (apply + xy more)
+      xy)))
+
+;; TODO: one arity that returns x * -1
+(defn -
+  [x y & more]
+  (let [xy (.- x y)]
+    (if more
+      (apply - xy more)
+      xy)))
+
+(defn inc
+  [x]
+  (+ x 1))
+
+(defn dec
+  [x]
+  (- x 1))
+
+;; TODO: zero arity that returns 1
+;; TODO: one arity that returns x (i.e. x * 1)
+(defn *
+  [x y & more]
+  (let [xy (.* x y)]
+    (if more
+      (apply * xy more)
+      xy)))
+
+;; TODO: one arity that returns 1 / x
+(defn /
+  [x y & more]
+  (let [xy (./ x y)]
+    (if more
+      (apply / xy more)
+      xy)))
+
+(defn <
+  [x & xs]
+  (boolean (reduce (fn [x y] (if (and x (.< x y)) y)) x xs)))
+
+(defn <=
+  [x & xs]
+  (boolean (reduce (fn [x y] (if (and x (.<= x y)) y)) x xs)))
+
+(defn =
+  [x & xs]
+  (boolean (reduce (fn [x y] (if (and x (.== x y)) y)) x xs)))
+
+(defn not=
+  [x & xs]
+  (boolean (reduce (fn [x y] (if (and x (.!= x y)) y)) x xs)))
+
+(defn >
+  [x & xs]
+  (boolean (reduce (fn [x y] (if (and x (.> x y)) y)) x xs)))
+
+(defn >=
+  [x & xs]
+  (boolean (reduce (fn [x y] (if (and x (.>= x y)) y)) x xs)))
+
+(defn pos?
+  [x]
+  (> x 0))
+
+(defn neg?
+  [x]
+  (< x 0))
+
+(defn zero?
+  [x]
+  (= 0 x))
 
 ;; STRINGS & KEYWORDS
 
