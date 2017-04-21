@@ -319,8 +319,8 @@
   (boolean (reduce (fn [x y] (if (and x (.== x y)) y)) x xs)))
 
 (defn not=
-  [x & xs]
-  (boolean (reduce (fn [x y] (if (and x (.!= x y)) y)) x xs)))
+  [& xs]
+  (not (apply = xs)))
 
 (defn >
   [x & xs]
