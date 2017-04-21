@@ -24,6 +24,8 @@ module RubyLisp
           x.value
         when Value
           x.value.inspect
+        when Object::Symbol
+          ":#{x.name}"
         else
           x.inspect
         end

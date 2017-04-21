@@ -10,7 +10,12 @@ include RubyLisp::Util
 # Monkey-patch Ruby symbols to act more like Clojure keywords
 class Symbol
 	def name
-		inspect[1..-1]
+		without_colon = inspect[1..-1]
+    if without_colon[0] == '"' && without_colon[-1] == '"'
+      without_colon[1..-2]
+    else
+      without_colon
+    end
 	end
 
   def call(target)
