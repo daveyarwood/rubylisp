@@ -60,20 +60,16 @@
 ;; defn, defmacro
 
 ;; TODO: docstring support
-;; TODO: multiple arity
 (defmacro* defmacro
-  (fn [name bindings & body]
+  (fn [name & more]
     `(defmacro* ~name
-       (fn ~name ~bindings
-         ~@body))))
+       (fn ~name ~@more))))
 
 ;; TODO: docstring support
-;; TODO: multiple arity
 (defmacro defn
-  [name bindings & body]
+  [name & more]
   `(def ~name
-     (fn ~name ~bindings
-       ~@body)))
+     (fn ~name ~@more)))
 
 ;; CONTROL FLOW
 

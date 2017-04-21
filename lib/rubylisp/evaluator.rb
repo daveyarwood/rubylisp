@@ -147,35 +147,17 @@ module RubyLisp
           elsif special_form? input, 'fn'
             if input[1].class == Symbol
               fn_name = input[1].value
-              bindings, *body = input[2..-1]
+              more = input[2..-1]
             else
               fn_name = "__fn_#{rand 10000}"
-              bindings, *body = input[1..-1]
+              more = input[1..-1]
             end
 
-            unless vector? bindings
-              raise RuntimeError,
-                    "The bindings of `fn` must be a vector; got #{body.class}."
-            end
+            arities = more[0].class == Hamster::Vector ? [list(more)] : more
 
-            bindings.each do |binding|
-              unless binding.class == Symbol
-                raise RuntimeError,
-                      "Each binding for `fn` must be a symbol; got #{binding.class}."
-              end
-            end
-
-            # bindings is now an array of strings (symbol names)
-            bindings = bindings.map(&:value)
-
-            ampersand_indices = bindings.to_list.indices {|x| x == '&'}
-            if ampersand_indices.any? {|i| i != bindings.count - 2}
-              raise RuntimeError,
-                    "An '&' can only occur right before the last binding."
-            end
-
-            return fn = Function.new(fn_name, env, bindings, body) {|*fn_args|
-              eval_ast body, fn.gen_env(fn_args, env)
+            return fn = Function.new(fn_name, env, arities) {|*fn_args|
+              arity = fn.get_arity(fn_args)
+              eval_ast arity.body, fn.gen_env(arity, fn_args, env)
             }
           elsif special_form? input, 'if'
             unless input[1..-1].count > 1
@@ -254,8 +236,9 @@ module RubyLisp
               # recur with input and env set to the body of the function and an
               # inner environment where the function's bindings are set to the
               # values of the arguments
-              input = fn.body
-              env = fn.gen_env(args, env)
+              arity = fn.get_arity(args)
+              env = fn.gen_env(arity, args, env)
+              input = arity.body
             else
               return fn.call(*args)
             end

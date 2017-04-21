@@ -3,6 +3,7 @@ require 'hamster/core_ext'
 require 'hamster/hash'
 require 'hamster/list'
 require 'hamster/vector'
+require 'rubylisp/function'
 require 'rubylisp/util'
 
 include RubyLisp::Util
@@ -70,57 +71,6 @@ module RubyLisp
 
   class ParseError < StandardError; end
   class RuntimeError < StandardError; end
-
-  class Function < Proc
-    attr_accessor :name, :env, :bindings, :body, :is_macro, :lambda
-
-    def initialize(name, env, bindings, body, &block)
-      super()
-      @name = name
-      @env = env
-      @bindings = bindings
-      @body = body
-      @is_macro = false
-      @lambda = block
-    end
-
-    def gen_env(args, env)
-      # set out_env to the current namespace so that `def` occurring within
-      # the fn's environment will define things in the namespace in which the
-      # function is called
-      out_env = env.out_env || env.find_namespace
-      env = Environment.new(outer: @env, out_env: out_env)
-      # so the fn can call itself recursively
-      env.set(@name, self)
-
-      sexp = list [Symbol.new(@name), *args]
-      if @bindings.any? {|binding| binding == '&'}
-        required_args = @bindings.count - 2
-        assert_at_least_n_args sexp, required_args
-
-        @bindings[0..-3].zip(args.take(required_args)).each do |k, v|
-          env.set(k, v)
-        end
-
-        rest_args = if args.count > required_args
-                      args[required_args..-1].to_list
-                    else
-                      nil
-                    end
-
-        env.set(@bindings.last, rest_args)
-      else
-        required_args = @bindings.count
-        assert_number_of_args sexp, required_args
-
-        @bindings.zip(args).each do |k, v|
-          env.set(k, v)
-        end
-      end
-
-      env
-    end
-  end
 
   class Symbol < Value
     def to_s
