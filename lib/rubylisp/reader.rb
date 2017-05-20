@@ -80,7 +80,7 @@ module RubyLisp
       # it's a little weird that an unfinished string (e.g. "abc) gets
       # tokenized as "", but at least the behavior is consistent ¯\_(ツ)_/¯
       when ""
-        raise ParseError, "Unexpected EOF while parsing String."
+        raise ParseError, "Unexpected EOF while parsing string."
       when /^:/
         Value.new(token[1..-1].to_sym)
       when 'nil'
