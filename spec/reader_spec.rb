@@ -71,11 +71,15 @@ end
 RSpec.describe 'strings' do
   with_rubylisp_env do
     expect_outputs \
+      '""', '""',
       '"abc"', '"abc"',
       '"abc (with parens)"', '"abc (with parens)"',
+      '"abc  def"', '"abc  def"',
       '"abc\"def"', '"abc\"def"',
       '"abc\ndef"', '"abc\ndef"',
-      '""', '""'
+      '"\""', '"\""',
+      '"abc\ndef\nghi"', '"abc\ndef\nghi"',
+      '"abc\\\def\\\ghi"', '"abc\\\def\\\ghi"'
   end
 end
 

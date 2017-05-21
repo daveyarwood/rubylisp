@@ -11,7 +11,7 @@ RSpec.configure do |config|
   end
 end
 
-def with_captured_stdout
+def with_out_str
   old_stdout = $stdout
   $stdout = StringIO.new('', 'w')
   yield
@@ -27,7 +27,7 @@ end
 
 def expect_output expected, input
   it "correctly handles #{input}" do
-    actual = with_captured_stdout do
+    actual = with_out_str do
       result = RubyLisp::Parser.parse input, $rubylisp_env
       print result
     end
