@@ -31,7 +31,12 @@ def expect_output expected, input
       result = RubyLisp::Parser.parse input, $rubylisp_env
       print result
     end
-    expect(actual).to eq(expected)
+
+    if expected.class == Regexp
+      expect(expected).to match(actual)
+    else
+      expect(actual).to eq(expected)
+    end
   end
 end
 
@@ -45,4 +50,13 @@ def expect_error expected, input
   it "should throw an error when given #{input}" do
     expect { RubyLisp::Parser.parse input, $rubylisp_env }.to raise_error(expected)
   end
+end
+
+def with_tmp_file contents
+  rand_id = "#{DateTime.now.strftime('%Q')}-#{rand(10000)}"
+  filename = "/tmp/rubylisp-test-#{rand_id}.txt"
+  tmp_file = File.new filename, 'w+'
+  tmp_file.write contents
+  tmp_file.close
+  yield tmp_file
 end
