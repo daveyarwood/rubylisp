@@ -45,3 +45,52 @@ RSpec.describe 'not' do
       'false', '(not 0)'
   end
 end
+
+RSpec.describe 'or' do
+  with_rubylisp_env do
+    expect_outputs \
+      'nil', '(or)',
+      '1', '(or 1)',
+      '1', '(or 1 2 3 4)',
+      '1', '(or 1 2 3 4 (println "this shouldn\'t print"))',
+      '2', '(or false 2)',
+      '3', '(or false nil 3)',
+      '4', '(or false nil false false nil 4)',
+      '3', '(or false nil 3 false nil 4)',
+      '4', '(or (or false 4))',
+      '"yes"', '(let [x (or nil "yes")] x)'
+  end
+end
+
+RSpec.describe 'cond' do
+  with_rubylisp_env do
+    expect_outputs \
+      'nil', '(cond)',
+      '7', '(cond true 7)',
+      '7', '(cond true 7 true 8)',
+      '8', '(cond false 7 true 8)',
+      '9', '(cond false 7 false 8 :else 9)',
+      '8', '(cond false 7 (= 2 2) 8 :else 9)',
+      'nil', '(cond false 7 false 8 false 9)'
+  end
+end
+
+RSpec.describe '->' do
+  with_rubylisp_env do
+    expect_outputs \
+      '7', '(-> 7)',
+      '7', '(-> (list 7 8 9) first)',
+      '7', '(-> (list 7 8 9) (first))',
+      '14', '(-> (list 7 8 9) first (+ 7))',
+      '16', '(-> (list 7 8 9) rest (rest) first (+ 7))'
+  end
+end
+
+RSpec.describe '->>' do
+  with_rubylisp_env do
+    expect_outputs \
+      '"L"', '(->> "L")',
+      '"MAL"', '(->> "L" (str "A") (str "M"))',
+      '(1 3 4)', '(->> [4] (concat [3]) (concat [2]) rest (concat [1]))'
+  end
+end

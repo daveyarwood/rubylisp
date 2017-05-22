@@ -19,7 +19,7 @@ module RubyLisp
         when Hamster::List
           "(#{x.map {|item| pr_str(item)}.join(' ')})"
         when Function
-          "#<Function: #{x.name}>"
+          "#<#{x.is_macro ? 'Macro' : 'Function'}: #{x.name}>"
         when Symbol
           x.value
         when Value
