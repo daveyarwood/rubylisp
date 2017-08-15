@@ -28,6 +28,8 @@ Gem::Specification.new do |spec|
   spec.executables   = ['rbl']
   spec.require_paths = ['lib', 'rubylisp']
 
+  spec.required_ruby_version = '>= 2.3'
+
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_runtime_dependency 'hamster', '3.0.0'
