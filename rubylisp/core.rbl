@@ -304,14 +304,17 @@
       (apply / xy more)
       xy)))
 
+;; FIXME
 (defn <
   [x & xs]
   (boolean (reduce (fn [x y] (if (and x (.< x y)) y)) x xs)))
 
+;; FIXME
 (defn <=
   [x & xs]
   (boolean (reduce (fn [x y] (if (and x (.<= x y)) y)) x xs)))
 
+;; FIXME
 (defn =
   [x & xs]
   (boolean (reduce (fn [x y] (if (and x (.== x y)) y)) x xs)))
@@ -320,10 +323,12 @@
   [& xs]
   (not (apply = xs)))
 
+;; FIXME
 (defn >
   [x & xs]
   (boolean (reduce (fn [x y] (if (and x (.> x y)) y)) x xs)))
 
+;; FIXME
 (defn >=
   [x & xs]
   (boolean (reduce (fn [x y] (if (and x (.>= x y)) y)) x xs)))
