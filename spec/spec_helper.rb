@@ -1,4 +1,5 @@
 require "bundler/setup"
+require "date"
 require "rubylisp/environment"
 require "rubylisp/parser"
 
